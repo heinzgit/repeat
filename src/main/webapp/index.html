@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>错题集管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>错题集管理系统</h1>
+        </header>
+
+        <main>
+            <section class="list-section">
+                <div class="section-header">
+                    <div class="title-with-filter">
+                        <h2>错题列表</h2>
+                        <select id="currentGrade" class="grade-selector">
+                            <option value="">全部年级</option>
+                            <option value="高一上">高一上</option>
+                            <option value="高一下">高一下</option>
+                            <option value="高二上">高二上</option>
+                            <option value="高二下">高二下</option>
+                            <option value="高三上">高三上</option>
+                            <option value="高三下">高三下</option>
+                        </select>
+                    </div>
+                    <button id="addQuestionBtn" class="btn-primary">添加错题</button>
+                </div>
+                <div class="action-bar">
+                    <div class="filter-bar">
+                        <select id="filterSubject">
+                        <option value="">全部科目</option>
+                        <option value="语文">语文</option>
+                        <option value="数学">数学</option>
+                        <option value="英语">英语</option>
+                        <option value="物理">物理</option>
+                        <option value="化学">化学</option>
+                        <option value="生物">生物</option>
+                        <option value="历史">历史</option>
+                        <option value="地理">地理</option>
+                        <option value="政治">政治</option>
+                    </select>
+                    <select id="filterStatus" multiple size="3">
+                        <option value="错误" selected>错误</option>
+                        <option value="通过">通过</option>
+                        <option value="反复错">反复错</option>
+                        <option value="反复错后通过">反复错后通过</option>
+                    </select>
+                    <input type="text" id="filterKeyword" placeholder="关键字筛选来源...">
+                    <button id="filterBtn" class="btn-secondary">筛选</button>
+                    <button id="clearFilterBtn" class="btn-secondary">清除筛选</button>
+                </div>
+                <div class="import-bar">
+                    <input type="file" id="csvFile" accept=".csv">
+                    <button id="importBtn" class="btn-secondary">导入CSV</button>
+                    <span class="csv-hint">格式: 年级,科目,错题来源,题号,类别,错题日期</span>
+                </div>
+                <table id="wrongQuestionTable" class="question-table">
+                    <thead>
+                        <tr>
+                            <th>年级</th>
+                            <th>科目</th>
+                            <th>错题来源</th>
+                            <th>题号</th>
+                            <th>类别</th>
+                            <th>错题日期</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wrongQuestionList"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- 重做记录模态框 -->
+    <div id="retryModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>重做记录</h2>
+            <div id="retryRecordsList"></div>
+            <h3>添加重做记录</h3>
+            <form id="retryRecordForm">
+                <input type="hidden" id="retryWrongQuestionId">
+                <div class="form-group">
+                    <label for="retryDate">重做日期</label>
+                    <input type="date" id="retryDate" name="retryDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="retryResult">结果</label>
+                    <select id="retryResult" name="retryResult" required>
+                        <option value="">请选择结果</option>
+                        <option value="错误">错误</option>
+                        <option value="通过">通过</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">添加记录</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 编辑错题模态框 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>编辑错题</h2>
+            <form id="editQuestionForm">
+                <input type="hidden" id="editId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editGrade">年级</label>
+                        <select id="editGrade" required>
+                            <option value="高一上">高一上</option>
+                            <option value="高一下">高一下</option>
+                            <option value="高二上">高二上</option>
+                            <option value="高二下">高二下</option>
+                            <option value="高三上">高三上</option>
+                            <option value="高三下">高三下</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSubject">科目</label>
+                        <select id="editSubject" required>
+                            <option value="语文">语文</option>
+                            <option value="数学">数学</option>
+                            <option value="英语">英语</option>
+                            <option value="物理">物理</option>
+                            <option value="化学">化学</option>
+                            <option value="生物">生物</option>
+                            <option value="历史">历史</option>
+                            <option value="地理">地理</option>
+                            <option value="政治">政治</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editSource">错题来源</label>
+                        <input type="text" id="editSource">
+                    </div>
+                    <div class="form-group">
+                        <label for="editQuestionNo">题号</label>
+                        <input type="text" id="editQuestionNo">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editCategory">错题类别</label>
+                        <select id="editCategory" required>
+                            <option value="做错">做错</option>
+                            <option value="不会做">不会做</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editWrongDate">错题发生日期</label>
+                        <input type="date" id="editWrongDate" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">状态</label>
+                    <select id="editStatus" required>
+                        <option value="错误">错误</option>
+                        <option value="通过">通过</option>
+                        <option value="反复错">反复错</option>
+                        <option value="反复错后通过">反复错后通过</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">保存修改</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加错题模态框 -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>添加错题</h2>
+            <form id="wrongQuestionForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="grade">年级</label>
+                        <select id="grade" name="grade" required>
+                            <option value="">请选择年级</option>
+                            <option value="高一上">高一上</option>
+                            <option value="高一下">高一下</option>
+                            <option value="高二上">高二上</option>
+                            <option value="高二下">高二下</option>
+                            <option value="高三上">高三上</option>
+                            <option value="高三下">高三下</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">科目</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">请选择科目</option>
+                            <option value="语文">语文</option>
+                            <option value="数学">数学</option>
+                            <option value="英语">英语</option>
+                            <option value="物理">物理</option>
+                            <option value="化学">化学</option>
+                            <option value="生物">生物</option>
+                            <option value="历史">历史</option>
+                            <option value="地理">地理</option>
+                            <option value="政治">政治</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="source">错题来源</label>
+                        <input type="text" id="source" name="source" placeholder="例如：期末考试、练习册">
+                    </div>
+                    <div class="form-group">
+                        <label for="questionNo">题号</label>
+                        <input type="text" id="questionNo" name="questionNo" placeholder="例如：第5题">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="category">错题类别</label>
+                        <select id="category" name="category" required>
+                            <option value="">请选择类别</option>
+                            <option value="做错">做错</option>
+                            <option value="不会做">不会做</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="wrongDate">错题发生日期</label>
+                        <input type="date" id="wrongDate" name="wrongDate" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">添加错题</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
