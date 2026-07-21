@@ -3,6 +3,7 @@ const API_BASE = 'http://localhost:8080/api';
 const PAGE_SIZE = 100;
 let currentPage = 1;
 let filteredQuestions = [];
+let selectedIds = new Set();
 
 // 获取所有错题
 async function fetchWrongQuestions() {
@@ -83,17 +84,38 @@ async function addRetryRecord(data) {
     }
 }
 
+// 批量添加重做记录
+async function addBatchRetryRecords(data) {
+    try {
+        const response = await fetch(`${API_BASE}/retry-records/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Batch retry failed');
+        return await response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
 // 渲染错题列表
 function renderWrongQuestions(questions) {
     const container = document.getElementById('wrongQuestionList');
 
     if (!questions || questions.length === 0) {
-        container.innerHTML = '<tr><td colspan="8" class="empty-state">暂无错题记录</td></tr>';
+        container.innerHTML = '<tr><td colspan="9" class="empty-state">暂无错题记录</td></tr>';
+        updateSelectAllState(questions);
         return;
     }
 
-    container.innerHTML = questions.map(q => `
-        <tr>
+    container.innerHTML = questions.map(q => {
+        const checked = selectedIds.has(q.id) ? 'checked' : '';
+        const rowClass = selectedIds.has(q.id) ? 'selected-row' : '';
+        return `
+        <tr class="${rowClass}">
+            <td class="checkbox-cell"><input type="checkbox" class="row-checkbox" data-id="${q.id}" ${checked} onchange="toggleRowSelection(${q.id}, this.checked)"></td>
             <td>${q.grade || '-'}</td>
             <td>${q.subject || '-'}</td>
             <td>${q.source || '-'}</td>
@@ -107,7 +129,87 @@ function renderWrongQuestions(questions) {
                 <button class="btn-small btn-delete" onclick="confirmDelete(${q.id})">删除</button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
+
+    updateSelectAllState(questions);
+}
+
+// 切换行选中状态
+function toggleRowSelection(id, checked) {
+    if (checked) {
+        selectedIds.add(id);
+    } else {
+        selectedIds.delete(id);
+    }
+    updateBulkButtonState();
+    updateRowHighlight(id, checked);
+}
+
+// 更新行高亮
+function updateRowHighlight(id, checked) {
+    const checkbox = document.querySelector(`.row-checkbox[data-id="${id}"]`);
+    if (checkbox) {
+        const row = checkbox.closest('tr');
+        if (row) row.classList.toggle('selected-row', checked);
+    }
+}
+
+// 更新全选 checkbox 状态
+function updateSelectAllState(currentPageQuestions) {
+    const selectAll = document.getElementById('selectAll');
+    if (!selectAll || !currentPageQuestions || currentPageQuestions.length === 0) {
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+        return;
+    }
+    const pageIds = currentPageQuestions.map(q => q.id);
+    const selectedOnPage = pageIds.filter(id => selectedIds.has(id));
+    selectAll.checked = selectedOnPage.length === pageIds.length;
+    selectAll.indeterminate = selectedOnPage.length > 0 && selectedOnPage.length < pageIds.length;
+}
+
+// 全选/取消全选当前页
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        if (cb.checked !== checkbox.checked) {
+            cb.checked = checkbox.checked;
+            if (checkbox.checked) {
+                selectedIds.add(id);
+            } else {
+                selectedIds.delete(id);
+            }
+            updateRowHighlight(id, checkbox.checked);
+        }
+    });
+    updateBulkButtonState();
+}
+
+// 更新批量按钮状态
+function updateBulkButtonState() {
+    const btn = document.getElementById('bulkRetryBtn');
+    const clearBtn = document.getElementById('clearSelectionBtn');
+    const count = selectedIds.size;
+    btn.textContent = `批量重做 (${count})`;
+    btn.disabled = count === 0;
+    clearBtn.disabled = count === 0;
+}
+
+// 清除所有选择
+function clearSelection() {
+    selectedIds.clear();
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('#wrongQuestionList tr').forEach(tr => tr.classList.remove('selected-row'));
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+    }
+    updateBulkButtonState();
 }
 
 // 渲染重做记录
@@ -163,6 +265,7 @@ async function filterQuestions() {
     }
 
     filteredQuestions = questions;
+    pruneSelection();
     currentPage = 1;
     renderCurrentPage();
 }
@@ -182,7 +285,16 @@ function clearFilters() {
     }
     document.getElementById('filterKeyword').value = '';
     localStorage.removeItem('currentGrade');
+    selectedIds.clear();
     loadQuestions();
+}
+
+// 清除当前列表中已不存在的选择
+function pruneSelection() {
+    const validIds = new Set(filteredQuestions.map(q => q.id));
+    for (const id of [...selectedIds]) {
+        if (!validIds.has(id)) selectedIds.delete(id);
+    }
 }
 
 // 确认删除
@@ -197,6 +309,7 @@ async function confirmDelete(id) {
 async function loadQuestions() {
     const questions = await fetchWrongQuestions();
     filteredQuestions = questions;
+    pruneSelection();
     currentPage = 1;
     renderCurrentPage();
 }
@@ -464,4 +577,46 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModals();
         }
     });
+
+    // 全选 checkbox
+    document.getElementById('selectAll').addEventListener('change', (e) => {
+        toggleSelectAll(e.target);
+    });
+
+    // 批量重做按钮
+    document.getElementById('bulkRetryBtn').addEventListener('click', openBatchRetryModal);
+
+    // 清除选择按钮
+    document.getElementById('clearSelectionBtn').addEventListener('click', clearSelection);
+
+    // 批量重做表单提交
+    document.getElementById('batchRetryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+            wrongQuestionIds: [...selectedIds],
+            retryDate: document.getElementById('batchRetryDate').value,
+            result: document.getElementById('batchRetryResult').value
+        };
+
+        try {
+            const saved = await addBatchRetryRecords(data);
+            closeModals();
+            clearSelection();
+            document.getElementById('batchRetryResult').value = '';
+            loadQuestions();
+            alert(`成功添加 ${saved.length} 条重做记录`);
+        } catch (error) {
+            alert('批量添加失败，请重试');
+        }
+    });
 });
+
+// 打开批量重做模态框
+function openBatchRetryModal() {
+    if (selectedIds.size === 0) return;
+    document.getElementById('batchRetryCount').textContent = `已选中 ${selectedIds.size} 道错题`;
+    document.getElementById('batchRetryDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('batchRetryResult').value = '';
+    document.getElementById('batchRetryModal').style.display = 'block';
+}

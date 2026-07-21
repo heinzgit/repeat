@@ -58,9 +58,14 @@
                     <button id="importBtn" class="btn-secondary">导入CSV</button>
                     <span class="csv-hint">格式: 年级,科目,错题来源,题号,类别,错题日期</span>
                 </div>
+                <div class="bulk-action-bar">
+                    <button id="bulkRetryBtn" class="btn-primary" disabled>批量重做 (0)</button>
+                    <button id="clearSelectionBtn" class="btn-secondary" disabled>清除选择</button>
+                </div>
                 <table id="wrongQuestionTable" class="question-table">
                     <thead>
                         <tr>
+                            <th class="checkbox-col"><input type="checkbox" id="selectAll"></th>
                             <th>年级</th>
                             <th>科目</th>
                             <th>错题来源</th>
@@ -100,6 +105,30 @@
                     </select>
                 </div>
                 <button type="submit" class="btn-primary">添加记录</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 批量重做记录模态框 -->
+    <div id="batchRetryModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>批量重做记录</h2>
+            <p id="batchRetryCount" class="batch-count">已选中 0 道错题</p>
+            <form id="batchRetryForm">
+                <div class="form-group">
+                    <label for="batchRetryDate">重做日期</label>
+                    <input type="date" id="batchRetryDate" name="batchRetryDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="batchRetryResult">结果</label>
+                    <select id="batchRetryResult" name="batchRetryResult" required>
+                        <option value="">请选择结果</option>
+                        <option value="错误">错误</option>
+                        <option value="通过">通过</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">保存</button>
             </form>
         </div>
     </div>

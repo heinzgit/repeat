@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,5 +69,17 @@ public class RetryRecordService {
 
     public void deleteById(Long id) {
         retryRecordRepository.deleteById(id);
+    }
+
+    @Transactional
+    public List<RetryRecord> saveBatch(List<Long> wrongQuestionIds, LocalDate retryDate, String result) {
+        List<RetryRecord> saved = new ArrayList<>();
+        for (Long id : wrongQuestionIds) {
+            RetryRecord record = new RetryRecord();
+            record.setRetryDate(retryDate);
+            record.setResult(result);
+            saved.add(save(record, id));
+        }
+        return saved;
     }
 }

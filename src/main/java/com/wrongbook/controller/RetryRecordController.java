@@ -30,6 +30,15 @@ public class RetryRecordController {
         return retryRecordService.save(record, request.getWrongQuestionId());
     }
 
+    @PostMapping("/retry-records/batch")
+    public List<RetryRecord> createBatch(@RequestBody BatchRetryRequest request) {
+        return retryRecordService.saveBatch(
+                request.getWrongQuestionIds(),
+                LocalDate.parse(request.getRetryDate()),
+                request.getResult()
+        );
+    }
+
     @DeleteMapping("/retry-records/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         retryRecordService.deleteById(id);
@@ -43,6 +52,21 @@ public class RetryRecordController {
 
         public Long getWrongQuestionId() { return wrongQuestionId; }
         public void setWrongQuestionId(Long wrongQuestionId) { this.wrongQuestionId = wrongQuestionId; }
+
+        public String getRetryDate() { return retryDate; }
+        public void setRetryDate(String retryDate) { this.retryDate = retryDate; }
+
+        public String getResult() { return result; }
+        public void setResult(String result) { this.result = result; }
+    }
+
+    public static class BatchRetryRequest {
+        private List<Long> wrongQuestionIds;
+        private String retryDate;
+        private String result;
+
+        public List<Long> getWrongQuestionIds() { return wrongQuestionIds; }
+        public void setWrongQuestionIds(List<Long> wrongQuestionIds) { this.wrongQuestionIds = wrongQuestionIds; }
 
         public String getRetryDate() { return retryDate; }
         public void setRetryDate(String retryDate) { this.retryDate = retryDate; }
