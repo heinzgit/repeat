@@ -1,5 +1,9 @@
 const API_BASE = 'http://localhost:8080/api';
 
+const PAGE_SIZE = 100;
+let currentPage = 1;
+let filteredQuestions = [];
+
 // 获取所有错题
 async function fetchWrongQuestions() {
     try {
@@ -158,7 +162,9 @@ async function filterQuestions() {
         localStorage.setItem('currentGrade', grade);
     }
 
-    renderWrongQuestions(questions);
+    filteredQuestions = questions;
+    currentPage = 1;
+    renderCurrentPage();
 }
 
 // 清除筛选
@@ -190,7 +196,77 @@ async function confirmDelete(id) {
 // 加载错题列表
 async function loadQuestions() {
     const questions = await fetchWrongQuestions();
-    renderWrongQuestions(questions);
+    filteredQuestions = questions;
+    currentPage = 1;
+    renderCurrentPage();
+}
+
+// 渲染当前页
+function renderCurrentPage() {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = filteredQuestions.slice(start, start + PAGE_SIZE);
+    renderWrongQuestions(pageItems);
+    renderPagination();
+}
+
+// 渲染分页控件
+function renderPagination() {
+    const container = document.getElementById('pagination');
+    const total = filteredQuestions.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+    if (total === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, total);
+
+    const pageNumbers = buildPageNumbers(currentPage, totalPages);
+
+    container.innerHTML = `
+        <div class="pagination-info">第 ${start}-${end} 条,共 ${total} 条</div>
+        <div class="pagination-controls">
+            <button class="btn-page" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(1)">首页</button>
+            <button class="btn-page" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>
+            ${pageNumbers.map(p => {
+                if (p === '...') {
+                    return '<span class="page-ellipsis">...</span>';
+                }
+                const active = p === currentPage ? 'active' : '';
+                return `<button class="btn-page ${active}" onclick="goToPage(${p})">${p}</button>`;
+            }).join('')}
+            <button class="btn-page" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>
+            <button class="btn-page" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${totalPages})">末页</button>
+        </div>
+    `;
+}
+
+// 构建页码序列,总页数过多时省略中间
+function buildPageNumbers(current, total) {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const pages = new Set([1, total, current, current - 1, current + 1]);
+    if (current <= 3) [2, 3, 4].forEach(p => pages.add(p));
+    if (current >= total - 2) [total - 1, total - 2, total - 3].forEach(p => pages.add(p));
+    const sorted = [...pages].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+    const result = [];
+    for (let i = 0; i < sorted.length; i++) {
+        if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push('...');
+        result.push(sorted[i]);
+    }
+    return result;
+}
+
+// 跳转到指定页
+function goToPage(page) {
+    const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / PAGE_SIZE));
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    currentPage = page;
+    renderCurrentPage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // 模态框控制

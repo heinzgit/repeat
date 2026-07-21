@@ -51,12 +51,12 @@ public class RetryRecordService {
                 wrongQuestion.setStatus("通过");
             }
         } else if ("错误".equals(result)) {
-            if ("通过".equals(wrongQuestion.getStatus()) || "反复错后通过".equals(wrongQuestion.getStatus())) {
+            if ("错误".equals(wrongQuestion.getStatus())) {
+                // 错题状态为"错误"且重做结果仍为"错误",改为"反复错"
                 wrongQuestion.setStatus("反复错");
-            } else if (hasWrongRecord && "错误".equals(wrongQuestion.getStatus())) {
-                // Already has a wrong record and status is still "错误", change to "反复错"
+            } else if ("通过".equals(wrongQuestion.getStatus()) || "反复错后通过".equals(wrongQuestion.getStatus())) {
                 wrongQuestion.setStatus("反复错");
-            } else {
+            } else if (!"反复错".equals(wrongQuestion.getStatus())) {
                 wrongQuestion.setStatus("错误");
             }
         }
