@@ -34,11 +34,17 @@ public class WrongQuestion {
     @Column(length = 20)
     private String status;
 
+    @Column(name = "answer_text", columnDefinition = "TEXT")
+    private String answerText;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "wrongQuestion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RetryRecord> retryRecords;
+
+    @OneToMany(mappedBy = "wrongQuestion", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WrongQuestionFile> files;
 
     @PrePersist
     protected void onCreate() {
@@ -69,9 +75,15 @@ public class WrongQuestion {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    public String getAnswerText() { return answerText; }
+    public void setAnswerText(String answerText) { this.answerText = answerText; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public List<RetryRecord> getRetryRecords() { return retryRecords; }
     public void setRetryRecords(List<RetryRecord> retryRecords) { this.retryRecords = retryRecords; }
+
+    public List<WrongQuestionFile> getFiles() { return files; }
+    public void setFiles(List<WrongQuestionFile> files) { this.files = files; }
 }

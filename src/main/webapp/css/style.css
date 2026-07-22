@@ -537,6 +537,172 @@ main section h2 {
     font-weight: 500;
 }
 
+/* 附件按钮 */
+.btn-attachment {
+    background: #6f42c1;
+    color: white;
+}
+
+.btn-attachment:hover {
+    background: #5a32a3;
+}
+
+/* 附件管理弹窗 */
+.modal-content-wide {
+    max-width: 720px;
+}
+
+.attachment-info {
+    background: #f8f9fa;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #555;
+    border-left: 3px solid #6f42c1;
+}
+
+.attachment-section {
+    margin-bottom: 20px;
+}
+
+.attachment-section h3 {
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.attachment-section .hint {
+    font-size: 12px;
+    color: #888;
+    font-weight: 400;
+}
+
+.attachment-section textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.attachment-section textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.upload-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.upload-row input[type="file"] {
+    display: none;
+}
+
+.file-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    min-height: 40px;
+}
+
+.file-list:empty::before {
+    content: "暂无文件";
+    color: #999;
+    font-size: 13px;
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 12px;
+}
+
+.file-item {
+    position: relative;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f8f9fa;
+    aspect-ratio: 1;
+}
+
+.file-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.file-item .file-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-item .file-delete:hover {
+    background: #c82333;
+}
+
+.file-item .file-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attachment-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+/* 粘贴目标区域 */
+.attachment-section.paste-active {
+    background: #f0f4ff;
+    border-radius: 6px;
+    padding: 8px;
+    margin: -8px;
+    margin-bottom: 12px;
+    transition: background 0.2s;
+}
+
+.paste-target {
+    outline: none;
+}
+
+.paste-target:focus {
+    box-shadow: 0 0 0 2px #667eea inset;
+    border-radius: 6px;
+}
+
 @media (max-width: 768px) {
     .form-row {
         flex-direction: column;

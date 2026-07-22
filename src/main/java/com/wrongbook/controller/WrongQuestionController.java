@@ -1,14 +1,17 @@
 package com.wrongbook.controller;
 
 import com.wrongbook.entity.WrongQuestion;
+import com.wrongbook.service.WrongQuestionFileService;
 import com.wrongbook.service.WrongQuestionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,6 +21,9 @@ public class WrongQuestionController {
 
     @Autowired
     private WrongQuestionService wrongQuestionService;
+
+    @Autowired
+    private WrongQuestionFileService fileService;
 
     @GetMapping
     public List<WrongQuestion> getAll() {
@@ -31,9 +37,47 @@ public class WrongQuestionController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public WrongQuestion create(@RequestBody WrongQuestion wrongQuestion) {
-        return wrongQuestionService.save(wrongQuestion);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public WrongQuestion create(
+            @RequestParam("grade") String grade,
+            @RequestParam("subject") String subject,
+            @RequestParam(value = "source", required = false) String source,
+            @RequestParam(value = "questionNo", required = false) String questionNo,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam("wrongDate") String wrongDate,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "answerText", required = false) String answerText,
+            @RequestParam(value = "questionFiles", required = false) MultipartFile[] questionFiles,
+            @RequestParam(value = "answerFiles", required = false) MultipartFile[] answerFiles) {
+
+        WrongQuestion wq = new WrongQuestion();
+        wq.setGrade(grade);
+        wq.setSubject(subject);
+        wq.setSource(source);
+        wq.setQuestionNo(questionNo);
+        wq.setCategory(category);
+        wq.setWrongDate(LocalDate.parse(wrongDate));
+        wq.setStatus(status != null && !status.isEmpty() ? status : "错误");
+        wq.setAnswerText(answerText);
+
+        WrongQuestion saved = wrongQuestionService.save(wq);
+
+        if (questionFiles != null) {
+            for (MultipartFile file : questionFiles) {
+                if (!file.isEmpty()) {
+                    fileService.upload(saved.getId(), file, "question");
+                }
+            }
+        }
+        if (answerFiles != null) {
+            for (MultipartFile file : answerFiles) {
+                if (!file.isEmpty()) {
+                    fileService.upload(saved.getId(), file, "answer");
+                }
+            }
+        }
+
+        return saved;
     }
 
     @PostMapping("/import")

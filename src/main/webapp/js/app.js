@@ -100,6 +100,42 @@ async function addBatchRetryRecords(data) {
     }
 }
 
+// 获取错题的文件列表
+async function fetchQuestionFiles(wrongQuestionId) {
+    try {
+        const response = await fetch(`${API_BASE}/wrong-questions/${wrongQuestionId}/files`);
+        if (!response.ok) throw new Error('Failed to fetch files');
+        return await response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        return [];
+    }
+}
+
+// 上传文件
+async function uploadQuestionFile(wrongQuestionId, file, type) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+    const response = await fetch(`${API_BASE}/wrong-questions/${wrongQuestionId}/files`, {
+        method: 'POST',
+        body: formData
+    });
+    if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err || 'Upload failed');
+    }
+    return await response.json();
+}
+
+// 删除文件
+async function deleteQuestionFile(fileId) {
+    const response = await fetch(`${API_BASE}/files/${fileId}`, {
+        method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Delete failed');
+}
+
 // 渲染错题列表
 function renderWrongQuestions(questions) {
     const container = document.getElementById('wrongQuestionList');
@@ -404,6 +440,15 @@ async function openEditModal(id) {
     document.getElementById('editCategory').value = q.category;
     document.getElementById('editWrongDate').value = q.wrongDate;
     document.getElementById('editStatus').value = q.status || '错误';
+    document.getElementById('editAnswerText').value = q.answerText || '';
+
+    // 重置待上传文件,加载已有附件
+    resetPendingEditFiles();
+    const files = await fetchQuestionFiles(id);
+    existingEditFiles.question = files.filter(f => f.fileType === 'QUESTION');
+    existingEditFiles.answer = files.filter(f => f.fileType === 'ANSWER');
+    setEditActivePasteSection('question');
+    renderEditFilePreviews();
 
     document.getElementById('editModal').style.display = 'block';
 }
@@ -446,10 +491,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 默认类别为"做错"
         document.getElementById('category').value = '做错';
 
+        // 重置待上传文件状态,默认激活"题目图片"区
+        resetPendingAddFiles();
+        setActivePasteSection('question');
+
         document.getElementById('addModal').style.display = 'block';
     });
 
-    // 添加错题表单提交
+    // 添加错题表单提交(支持图片上传)
     document.getElementById('wrongQuestionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -457,18 +506,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const subject = document.getElementById('subject').value;
         const source = document.getElementById('source').value;
 
-        const data = {
-            grade: grade,
-            subject: subject,
-            source: source,
-            questionNo: document.getElementById('questionNo').value,
-            category: document.getElementById('category').value || '做错',
-            wrongDate: document.getElementById('wrongDate').value,
-            status: '错误'
-        };
+        const formData = new FormData();
+        formData.append('grade', grade);
+        formData.append('subject', subject);
+        if (source) formData.append('source', source);
+        formData.append('questionNo', document.getElementById('questionNo').value);
+        formData.append('category', document.getElementById('category').value || '做错');
+        formData.append('wrongDate', document.getElementById('wrongDate').value);
+        formData.append('status', '错误');
+
+        pendingAddFiles.question.forEach(f => formData.append('questionFiles', f));
+        pendingAddFiles.answer.forEach(f => formData.append('answerFiles', f));
 
         try {
-            await addWrongQuestion(data);
+            const response = await fetch(`${API_BASE}/wrong-questions`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) throw new Error('Add failed');
+            await response.json();
 
             // 保存本次填写的内容作为默认值
             localStorage.setItem('lastGrade', grade);
@@ -477,10 +533,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('wrongQuestionForm').reset();
             document.getElementById('wrongDate').value = new Date().toISOString().split('T')[0];
+            resetPendingAddFiles();
             document.getElementById('addModal').style.display = 'none';
             loadQuestions();
             alert('添加成功！');
         } catch (error) {
+            console.error(error);
             alert('添加失败，请重试');
         }
     });
@@ -520,9 +578,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 编辑错题表单提交
+    // 编辑错题表单提交(支持图片上传)
     document.getElementById('editQuestionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (e.submitter?.id !== 'saveEditQuestionBtn') return;
 
         const id = document.getElementById('editId').value;
         const data = {
@@ -532,15 +591,27 @@ document.addEventListener('DOMContentLoaded', () => {
             questionNo: document.getElementById('editQuestionNo').value,
             category: document.getElementById('editCategory').value,
             wrongDate: document.getElementById('editWrongDate').value,
-            status: document.getElementById('editStatus').value
+            status: document.getElementById('editStatus').value,
+            answerText: document.getElementById('editAnswerText').value
         };
 
         try {
             await updateWrongQuestion(id, data);
+
+            // 上传待添加的图片
+            for (const file of pendingEditFiles.question) {
+                await uploadQuestionFile(id, file, 'question');
+            }
+            for (const file of pendingEditFiles.answer) {
+                await uploadQuestionFile(id, file, 'answer');
+            }
+
+            resetPendingEditFiles();
             closeModals();
             loadQuestions();
             alert('更新成功！');
         } catch (error) {
+            console.error(error);
             alert('更新失败，请重试');
         }
     });
@@ -610,6 +681,69 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('批量添加失败，请重试');
         }
     });
+
+    // 添加错题时的文件选择
+    document.getElementById('addQuestionFileInput').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(f => pendingAddFiles.question.push(f));
+        renderAddFilePreviews();
+        e.target.value = '';
+    });
+    document.getElementById('addAnswerFileInput').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(f => pendingAddFiles.answer.push(f));
+        renderAddFilePreviews();
+        e.target.value = '';
+    });
+
+    // 编辑错题时的文件选择
+    document.getElementById('editQuestionFileInput').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(f => pendingEditFiles.question.push(f));
+        renderEditFilePreviews();
+        e.target.value = '';
+    });
+    document.getElementById('editAnswerFileInput').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(f => pendingEditFiles.answer.push(f));
+        renderEditFilePreviews();
+        e.target.value = '';
+    });
+
+    // 点击附件区激活粘贴目标
+    document.querySelectorAll('#addModal .attachment-section').forEach(section => {
+        const type = section.dataset.type;
+        const target = section.querySelector('.paste-target');
+        if (!target) return;
+        target.addEventListener('focus', () => setActivePasteSection(type));
+        target.addEventListener('click', () => {
+            setActivePasteSection(type);
+            target.focus();
+        });
+    });
+    document.querySelectorAll('#editModal .attachment-section').forEach(section => {
+        const type = section.dataset.type;
+        if (!type) return;
+        const target = section.querySelector('.paste-target');
+        if (!target) return;
+        target.addEventListener('focus', () => setEditActivePasteSection(type));
+        target.addEventListener('click', () => {
+            setEditActivePasteSection(type);
+            target.focus();
+        });
+    });
+
+    // 全局粘贴事件 - 当添加或编辑错题模态框打开时,粘贴到当前激活区
+    document.addEventListener('paste', (e) => {
+        if (!e.clipboardData) return;
+        const addModal = document.getElementById('addModal');
+        const editModal = document.getElementById('editModal');
+        if (addModal && addModal.style.display === 'block') {
+            if (handlePastedFiles(activePasteType, e.clipboardData)) e.preventDefault();
+        } else if (editModal && editModal.style.display === 'block') {
+            if (handlePastedEditFiles(editActivePasteType, e.clipboardData)) e.preventDefault();
+        }
+    });
 });
 
 // 打开批量重做模态框
@@ -619,4 +753,176 @@ function openBatchRetryModal() {
     document.getElementById('batchRetryDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('batchRetryResult').value = '';
     document.getElementById('batchRetryModal').style.display = 'block';
+}
+
+// 添加错题时的待上传文件
+const pendingAddFiles = { question: [], answer: [] };
+
+// 标记当前活动的粘贴区
+let activePasteType = 'question';
+
+function setActivePasteSection(type) {
+    activePasteType = type;
+    document.querySelectorAll('#addModal .attachment-section').forEach(s => {
+        s.classList.toggle('paste-active', s.dataset.type === type);
+    });
+}
+
+function handlePastedFiles(type, clipboardData) {
+    const items = clipboardData?.items;
+    if (!items) return false;
+    let added = false;
+    for (const item of items) {
+        if (item.type && item.type.startsWith('image/')) {
+            const blob = item.getAsFile();
+            if (!blob) continue;
+            const ext = item.type.split('/')[1] || 'png';
+            const file = new File([blob], `pasted-${Date.now()}-${pendingAddFiles[type].length}.${ext}`, { type: item.type });
+            pendingAddFiles[type].push(file);
+            added = true;
+        }
+    }
+    if (added) renderAddFilePreviews();
+    return added;
+}
+
+function renderAddFilePreviews() {
+    renderPendingPreview('addQuestionFileList', pendingAddFiles.question, 'question');
+    renderPendingPreview('addAnswerFileList', pendingAddFiles.answer, 'answer');
+}
+
+function renderPendingPreview(containerId, files, type) {
+    const container = document.getElementById(containerId);
+    if (files.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = files.map((f, i) => {
+        const url = URL.createObjectURL(f);
+        return `
+            <div class="file-item pending-file">
+                <img src="${url}" alt="${escapeAttr(f.name)}" onclick="window.open('${url}', '_blank')">
+                <button class="file-delete" onclick="removePendingAddFile('${type}', ${i})" title="删除">×</button>
+                <div class="file-name" title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function removePendingAddFile(type, index) {
+    pendingAddFiles[type].splice(index, 1);
+    renderAddFilePreviews();
+}
+
+function resetPendingAddFiles() {
+    pendingAddFiles.question = [];
+    pendingAddFiles.answer = [];
+    activePasteType = 'question';
+    renderAddFilePreviews();
+    document.querySelectorAll('#addModal .attachment-section').forEach(s => s.classList.remove('paste-active'));
+}
+
+// 编辑错题时的文件状态
+const pendingEditFiles = { question: [], answer: [] };
+const existingEditFiles = { question: [], answer: [] };
+let editActivePasteType = 'question';
+
+function setEditActivePasteSection(type) {
+    editActivePasteType = type;
+    document.querySelectorAll('#editModal .attachment-section').forEach(s => {
+        if (s.dataset.type) {
+            s.classList.toggle('paste-active', s.dataset.type === type);
+        }
+    });
+}
+
+function handlePastedEditFiles(type, clipboardData) {
+    const items = clipboardData?.items;
+    if (!items) return false;
+    let added = false;
+    for (const item of items) {
+        if (item.type && item.type.startsWith('image/')) {
+            const blob = item.getAsFile();
+            if (!blob) continue;
+            const ext = item.type.split('/')[1] || 'png';
+            const file = new File([blob], `pasted-${Date.now()}-${pendingEditFiles[type].length}.${ext}`, { type: item.type });
+            pendingEditFiles[type].push(file);
+            added = true;
+        }
+    }
+    if (added) renderEditFilePreviews();
+    return added;
+}
+
+function renderEditFilePreviews() {
+    renderEditSection('editQuestionFileList', existingEditFiles.question, pendingEditFiles.question, 'question');
+    renderEditSection('editAnswerFileList', existingEditFiles.answer, pendingEditFiles.answer, 'answer');
+}
+
+function renderEditSection(containerId, existingFiles, pendingFiles, type) {
+    const container = document.getElementById(containerId);
+    const existingHtml = existingFiles.map(f => {
+        const src = `${API_BASE}/files/${f.id}/content`;
+        const name = f.originalName || '';
+        return `
+            <div class="file-item">
+                <img src="${src}" alt="${escapeAttr(name)}" onclick="window.open('${src}', '_blank')">
+                <button type="button" class="file-delete" onclick="deleteExistingEditFile(event, ${f.id}, '${type}'); return false;" title="删除">×</button>
+                <div class="file-name" title="${escapeAttr(name)}">${escapeHtml(name)}</div>
+            </div>
+        `;
+    }).join('');
+
+    const pendingHtml = pendingFiles.map((file, i) => {
+        const url = URL.createObjectURL(file);
+        return `
+            <div class="file-item pending-file">
+                <img src="${url}" alt="${escapeAttr(file.name)}" onclick="window.open('${url}', '_blank')">
+                <button type="button" class="file-delete" onclick="removePendingEditFile(event, '${type}', ${i}); return false;" title="删除">×</button>
+                <div class="file-name" title="${escapeAttr(file.name)}">${escapeHtml(file.name)}</div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = existingHtml + pendingHtml;
+}
+
+function removePendingEditFile(event, type, index) {
+    event.preventDefault();
+    event.stopPropagation();
+    pendingEditFiles[type].splice(index, 1);
+    renderEditFilePreviews();
+}
+
+async function deleteExistingEditFile(event, fileId, type) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!confirm('确定要删除这个文件吗?')) return;
+    try {
+        await deleteQuestionFile(fileId);
+        existingEditFiles[type] = existingEditFiles[type].filter(f => f.id !== fileId);
+        renderEditFilePreviews();
+    } catch (error) {
+        alert('删除失败，请重试');
+    }
+}
+
+function resetPendingEditFiles() {
+    pendingEditFiles.question = [];
+    pendingEditFiles.answer = [];
+    existingEditFiles.question = [];
+    existingEditFiles.answer = [];
+    editActivePasteType = 'question';
+    renderEditFilePreviews();
+    document.querySelectorAll('#editModal .attachment-section').forEach(s => s.classList.remove('paste-active'));
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+function escapeAttr(s) {
+    return escapeHtml(s);
 }

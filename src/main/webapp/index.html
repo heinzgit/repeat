@@ -135,7 +135,7 @@
 
     <!-- 编辑错题模态框 -->
     <div id="editModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-content-wide">
             <span class="close">&times;</span>
             <h2>编辑错题</h2>
             <form id="editQuestionForm">
@@ -199,14 +199,38 @@
                         <option value="反复错后通过">反复错后通过</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-primary">保存修改</button>
+
+                <div class="attachment-section" data-type="question">
+                    <h3>题目图片 <span class="hint">点此区域后按 Ctrl/Cmd + V 粘贴,或点按钮选文件</span></h3>
+                    <div class="upload-row">
+                        <input type="file" id="editQuestionFileInput" accept="image/*" multiple>
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('editQuestionFileInput').click()">+ 选择图片</button>
+                    </div>
+                    <div id="editQuestionFileList" class="file-list paste-target" tabindex="0"></div>
+                </div>
+
+                <div class="attachment-section" data-type="answer">
+                    <h3>答案图片 <span class="hint">点此区域后按 Ctrl/Cmd + V 粘贴,或点按钮选文件</span></h3>
+                    <div class="upload-row">
+                        <input type="file" id="editAnswerFileInput" accept="image/*" multiple>
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('editAnswerFileInput').click()">+ 选择图片</button>
+                    </div>
+                    <div id="editAnswerFileList" class="file-list paste-target" tabindex="0"></div>
+                </div>
+
+                <div class="attachment-section">
+                    <h3>答案文字</h3>
+                    <textarea id="editAnswerText" rows="4" placeholder="可填写文字答案..."></textarea>
+                </div>
+
+                <button id="saveEditQuestionBtn" type="submit" class="btn-primary">保存修改</button>
             </form>
         </div>
     </div>
 
     <!-- 添加错题模态框 -->
     <div id="addModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-content-wide">
             <span class="close">&times;</span>
             <h2>添加错题</h2>
             <form id="wrongQuestionForm">
@@ -263,11 +287,30 @@
                         <input type="date" id="wrongDate" name="wrongDate" required>
                     </div>
                 </div>
+
+                <div class="attachment-section" data-type="question">
+                    <h3>题目图片 <span class="hint">点此区域后按 Ctrl/Cmd + V 粘贴,或点按钮选文件</span></h3>
+                    <div class="upload-row">
+                        <input type="file" id="addQuestionFileInput" accept="image/*" multiple>
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('addQuestionFileInput').click()">+ 选择图片</button>
+                    </div>
+                    <div id="addQuestionFileList" class="file-list paste-target" tabindex="0"></div>
+                </div>
+
+                <div class="attachment-section" data-type="answer">
+                    <h3>答案图片 <span class="hint">点此区域后按 Ctrl/Cmd + V 粘贴,或点按钮选文件</span></h3>
+                    <div class="upload-row">
+                        <input type="file" id="addAnswerFileInput" accept="image/*" multiple>
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('addAnswerFileInput').click()">+ 选择图片</button>
+                    </div>
+                    <div id="addAnswerFileList" class="file-list paste-target" tabindex="0"></div>
+                </div>
+
                 <button type="submit" class="btn-primary">添加错题</button>
             </form>
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=20260722-1"></script>
 </body>
 </html>

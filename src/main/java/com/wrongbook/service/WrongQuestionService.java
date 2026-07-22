@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -16,6 +17,9 @@ public class WrongQuestionService {
 
     @Autowired
     private WrongQuestionRepository wrongQuestionRepository;
+
+    @Autowired
+    private WrongQuestionFileService fileService;
 
     public List<WrongQuestion> findAll() {
         return wrongQuestionRepository.findAll();
@@ -32,21 +36,41 @@ public class WrongQuestionService {
     @Transactional
     public WrongQuestion update(Long id, WrongQuestion wrongQuestion) {
         Optional<WrongQuestion> existing = wrongQuestionRepository.findById(id);
-        if (existing.isPresent()) {
-            WrongQuestion updated = existing.get();
-            updated.setGrade(wrongQuestion.getGrade());
-            updated.setSubject(wrongQuestion.getSubject());
-            updated.setSource(wrongQuestion.getSource());
-            updated.setQuestionNo(wrongQuestion.getQuestionNo());
-            updated.setCategory(wrongQuestion.getCategory());
-            updated.setWrongDate(wrongQuestion.getWrongDate());
-            updated.setStatus(wrongQuestion.getStatus());
-            return wrongQuestionRepository.save(updated);
+        if (!existing.isPresent()) {
+            throw new RuntimeException("WrongQuestion not found with id: " + id);
         }
-        throw new RuntimeException("WrongQuestion not found with id: " + id);
+
+        WrongQuestion updated = existing.get();
+
+        // 记录旧值,用于判断是否需要搬运文件
+        String oldGrade = updated.getGrade();
+        String oldSubject = updated.getSubject();
+        String oldSource = updated.getSource();
+
+        updated.setGrade(wrongQuestion.getGrade());
+        updated.setSubject(wrongQuestion.getSubject());
+        updated.setSource(wrongQuestion.getSource());
+        updated.setQuestionNo(wrongQuestion.getQuestionNo());
+        updated.setCategory(wrongQuestion.getCategory());
+        updated.setWrongDate(wrongQuestion.getWrongDate());
+        updated.setStatus(wrongQuestion.getStatus());
+        updated.setAnswerText(wrongQuestion.getAnswerText());
+
+        WrongQuestion saved = wrongQuestionRepository.save(updated);
+
+        // 年级/科目/来源变化时,把所有附件搬到新目录
+        if (!Objects.equals(oldGrade, saved.getGrade())
+                || !Objects.equals(oldSubject, saved.getSubject())
+                || !Objects.equals(oldSource, saved.getSource())) {
+            fileService.moveFilesForQuestion(saved, oldGrade, oldSubject, oldSource);
+        }
+
+        return saved;
     }
 
+    @Transactional
     public void deleteById(Long id) {
+        fileService.deleteAllForQuestion(id);
         wrongQuestionRepository.deleteById(id);
     }
 
