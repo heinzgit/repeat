@@ -4,6 +4,7 @@ const PAGE_SIZE = 100;
 let currentPage = 1;
 let filteredQuestions = [];
 let selectedIds = new Set();
+let pdfExportInFlight = false;
 
 // 获取所有错题
 async function fetchWrongQuestions() {
@@ -97,6 +98,55 @@ async function addBatchRetryRecords(data) {
     } catch (error) {
         console.error('Error:', error);
         throw error;
+    }
+}
+
+// 生成并下载试卷 PDF
+async function exportSelectedPdf() {
+    if (pdfExportInFlight) return;
+
+    const orderedIds = filteredQuestions
+        .filter(question => selectedIds.has(question.id))
+        .map(question => question.id);
+    if (orderedIds.length === 0) return;
+
+    const button = document.getElementById('bulkExportPdfBtn');
+    pdfExportInFlight = true;
+    button.disabled = true;
+    button.textContent = '生成中...';
+
+    try {
+        const response = await fetch(`${API_BASE}/wrong-questions/export-pdf`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wrongQuestionIds: orderedIds })
+        });
+        if (!response.ok) {
+            let message = 'PDF 生成失败，请重试';
+            try {
+                const error = await response.json();
+                if (error.message) message = error.message;
+            } catch (_) {
+                // 使用默认错误提示
+            }
+            throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `错题试卷_${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error(error);
+        alert(error.message || 'PDF 生成失败，请重试');
+    } finally {
+        pdfExportInFlight = false;
+        updateBulkButtonState();
     }
 }
 
@@ -228,10 +278,13 @@ function toggleSelectAll(checkbox) {
 // 更新批量按钮状态
 function updateBulkButtonState() {
     const btn = document.getElementById('bulkRetryBtn');
+    const exportBtn = document.getElementById('bulkExportPdfBtn');
     const clearBtn = document.getElementById('clearSelectionBtn');
     const count = selectedIds.size;
     btn.textContent = `批量重做 (${count})`;
     btn.disabled = count === 0;
+    exportBtn.textContent = pdfExportInFlight ? '生成中...' : `生成试卷 PDF (${count})`;
+    exportBtn.disabled = pdfExportInFlight || count === 0;
     clearBtn.disabled = count === 0;
 }
 
@@ -274,11 +327,10 @@ async function renderRetryRecords(wrongQuestionId) {
 async function filterQuestions() {
     const grade = document.getElementById('currentGrade').value;
     const subject = document.getElementById('filterSubject').value;
-    const statusSelect = document.getElementById('filterStatus');
+    const selectedStatuses = Array.from(
+        document.querySelectorAll('#filterStatus input[type="checkbox"]:checked')
+    ).map(checkbox => checkbox.value);
     const keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
-
-    // Get selected statuses
-    const selectedStatuses = Array.from(statusSelect.selectedOptions).map(opt => opt.value);
 
     let questions = await fetchWrongQuestions();
 
@@ -310,15 +362,8 @@ async function filterQuestions() {
 function clearFilters() {
     document.getElementById('currentGrade').value = '';
     document.getElementById('filterSubject').value = '';
-    document.getElementById('filterStatus').selectedIndex = -1;
-    // Select "错误" by default
-    const statusSelect = document.getElementById('filterStatus');
-    for (let option of statusSelect.options) {
-        if (option.value === '错误') {
-            option.selected = true;
-            break;
-        }
-    }
+    document.querySelectorAll('#filterStatus input[type="checkbox"]')
+        .forEach(checkbox => checkbox.checked = false);
     document.getElementById('filterKeyword').value = '';
     localStorage.removeItem('currentGrade');
     selectedIds.clear();
@@ -656,6 +701,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 批量重做按钮
     document.getElementById('bulkRetryBtn').addEventListener('click', openBatchRetryModal);
+
+    // 生成试卷 PDF
+    document.getElementById('bulkExportPdfBtn').addEventListener('click', exportSelectedPdf);
 
     // 清除选择按钮
     document.getElementById('clearSelectionBtn').addEventListener('click', clearSelection);

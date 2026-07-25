@@ -19,6 +19,9 @@ spring:
 app:
   files:
     dir: ./wrongbook-files
+  export:
+    pdf:
+      font-path: ${PDF_FONT_PATH:/System/Library/Fonts/Supplemental/Arial Unicode.ttf}
 
 server:
   port: 8080

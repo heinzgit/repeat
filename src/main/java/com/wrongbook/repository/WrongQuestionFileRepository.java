@@ -11,4 +11,6 @@ import java.util.List;
 public interface WrongQuestionFileRepository extends JpaRepository<WrongQuestionFile, Long> {
     List<WrongQuestionFile> findByWrongQuestionId(Long wrongQuestionId);
     List<WrongQuestionFile> findByWrongQuestionIdAndFileType(Long wrongQuestionId, FileType fileType);
+    List<WrongQuestionFile> findByWrongQuestionIdInAndFileTypeOrderByWrongQuestionIdAscIdAsc(
+            List<Long> wrongQuestionIds, FileType fileType);
 }

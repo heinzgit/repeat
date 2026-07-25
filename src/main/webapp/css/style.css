@@ -163,6 +163,31 @@ main section h2 {
     min-width: 120px;
 }
 
+.status-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 7px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+}
+
+.status-filter label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.status-filter input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
 .filter-bar input[type="text"] {
     padding: 8px 12px;
     border: 1px solid #ddd;
@@ -712,7 +737,8 @@ main section h2 {
         flex-direction: column;
     }
 
-    .filter-bar select {
+    .filter-bar select,
+    .status-filter {
         width: 100%;
     }
 

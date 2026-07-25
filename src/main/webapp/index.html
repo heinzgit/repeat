@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>错题集管理系统</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260725-1">
 </head>
 <body>
     <div class="container">
@@ -43,12 +43,12 @@
                         <option value="地理">地理</option>
                         <option value="政治">政治</option>
                     </select>
-                    <select id="filterStatus" multiple size="3">
-                        <option value="错误" selected>错误</option>
-                        <option value="通过">通过</option>
-                        <option value="反复错">反复错</option>
-                        <option value="反复错后通过">反复错后通过</option>
-                    </select>
+                    <div id="filterStatus" class="status-filter" role="group" aria-label="错题状态">
+                        <label><input type="checkbox" value="错误">错误</label>
+                        <label><input type="checkbox" value="通过">通过</label>
+                        <label><input type="checkbox" value="反复错">反复错</label>
+                        <label><input type="checkbox" value="反复错后通过">反复错后通过</label>
+                    </div>
                     <input type="text" id="filterKeyword" placeholder="关键字筛选来源...">
                     <button id="filterBtn" class="btn-secondary">筛选</button>
                     <button id="clearFilterBtn" class="btn-secondary">清除筛选</button>
@@ -60,6 +60,7 @@
                 </div>
                 <div class="bulk-action-bar">
                     <button id="bulkRetryBtn" class="btn-primary" disabled>批量重做 (0)</button>
+                    <button id="bulkExportPdfBtn" class="btn-primary" disabled>生成试卷 PDF (0)</button>
                     <button id="clearSelectionBtn" class="btn-secondary" disabled>清除选择</button>
                 </div>
                 <table id="wrongQuestionTable" class="question-table">
@@ -311,6 +312,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=20260722-1"></script>
+    <script src="js/app.js?v=20260725-1"></script>
 </body>
 </html>
