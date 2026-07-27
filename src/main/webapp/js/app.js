@@ -575,6 +575,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('category', document.getElementById('category').value || '做错');
         formData.append('wrongDate', document.getElementById('wrongDate').value);
         formData.append('status', '错误');
+        const answerText = document.getElementById('addAnswerText').value;
+        if (answerText) formData.append('answerText', answerText);
 
         pendingAddFiles.question.forEach(f => formData.append('questionFiles', f));
         pendingAddFiles.answer.forEach(f => formData.append('answerFiles', f));
@@ -594,6 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('wrongQuestionForm').reset();
             document.getElementById('wrongDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addAnswerText').value = '';
             resetPendingAddFiles();
             document.getElementById('addModal').style.display = 'none';
             filterQuestions();
@@ -778,23 +781,33 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('#addModal .attachment-section').forEach(section => {
         const type = section.dataset.type;
         const target = section.querySelector('.paste-target');
-        if (!target) return;
-        target.addEventListener('focus', () => setActivePasteSection(type));
-        target.addEventListener('click', () => {
+        if (!type || !target) return;
+        const activate = () => {
             setActivePasteSection(type);
             target.focus();
+        };
+        section.addEventListener('click', (e) => {
+            if (e.target.closest('input,textarea,button')) return;
+            activate();
         });
+        target.addEventListener('focus', () => setActivePasteSection(type));
+        target.addEventListener('click', activate);
     });
     document.querySelectorAll('#editModal .attachment-section').forEach(section => {
         const type = section.dataset.type;
         if (!type) return;
         const target = section.querySelector('.paste-target');
         if (!target) return;
-        target.addEventListener('focus', () => setEditActivePasteSection(type));
-        target.addEventListener('click', () => {
+        const activate = () => {
             setEditActivePasteSection(type);
             target.focus();
+        };
+        section.addEventListener('click', (e) => {
+            if (e.target.closest('input,textarea,button')) return;
+            activate();
         });
+        target.addEventListener('focus', () => setEditActivePasteSection(type));
+        target.addEventListener('click', activate);
     });
 
     // 全局粘贴事件 - 当添加或编辑错题模态框打开时,粘贴到当前激活区
