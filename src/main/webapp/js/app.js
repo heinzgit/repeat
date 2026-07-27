@@ -331,6 +331,13 @@ async function filterQuestions() {
         document.querySelectorAll('#filterStatus input[type="checkbox"]:checked')
     ).map(checkbox => checkbox.value);
     const keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
+    const startDate = document.getElementById('filterDateStart').value;
+    const endDate = document.getElementById('filterDateEnd').value;
+
+    if (startDate && endDate && startDate > endDate) {
+        alert('开始日期不能晚于结束日期');
+        return;
+    }
 
     let questions = await fetchWrongQuestions();
 
@@ -342,6 +349,13 @@ async function filterQuestions() {
     }
     if (selectedStatuses.length > 0) {
         questions = questions.filter(q => q.status && selectedStatuses.includes(q.status));
+    }
+    if (startDate && endDate) {
+        questions = questions.filter(q => q.wrongDate && q.wrongDate >= startDate && q.wrongDate <= endDate);
+    } else if (startDate) {
+        questions = questions.filter(q => q.wrongDate === startDate);
+    } else if (endDate) {
+        questions = questions.filter(q => q.wrongDate === endDate);
     }
     if (keyword) {
         questions = questions.filter(q => q.source && q.source.toLowerCase().includes(keyword));
@@ -365,6 +379,8 @@ function clearFilters() {
     document.querySelectorAll('#filterStatus input[type="checkbox"]')
         .forEach(checkbox => checkbox.checked = false);
     document.getElementById('filterKeyword').value = '';
+    document.getElementById('filterDateStart').value = '';
+    document.getElementById('filterDateEnd').value = '';
     localStorage.removeItem('currentGrade');
     selectedIds.clear();
     loadQuestions();
@@ -382,7 +398,7 @@ function pruneSelection() {
 async function confirmDelete(id) {
     if (confirm('确定要删除这条错题记录吗？')) {
         await deleteWrongQuestion(id);
-        loadQuestions();
+        filterQuestions();
     }
 }
 
@@ -580,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('wrongDate').value = new Date().toISOString().split('T')[0];
             resetPendingAddFiles();
             document.getElementById('addModal').style.display = 'none';
-            loadQuestions();
+            filterQuestions();
             alert('添加成功！');
         } catch (error) {
             console.error(error);
@@ -616,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const imported = await response.json();
             alert(`成功导入 ${imported.length} 条错题记录`);
             fileInput.value = '';
-            loadQuestions();
+            filterQuestions();
         } catch (error) {
             console.error('Error:', error);
             alert('导入失败，请检查CSV格式');
@@ -653,7 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             resetPendingEditFiles();
             closeModals();
-            loadQuestions();
+            filterQuestions();
             alert('更新成功！');
         } catch (error) {
             console.error(error);
@@ -676,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await addRetryRecord(data);
             document.getElementById('retryResult').value = '';
             renderRetryRecords(wrongQuestionId);
-            loadQuestions();
+            filterQuestions();
             alert('添加成功！');
         } catch (error) {
             alert('添加失败，请重试');
@@ -723,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModals();
             clearSelection();
             document.getElementById('batchRetryResult').value = '';
-            loadQuestions();
+            filterQuestions();
             alert(`成功添加 ${saved.length} 条重做记录`);
         } catch (error) {
             alert('批量添加失败，请重试');

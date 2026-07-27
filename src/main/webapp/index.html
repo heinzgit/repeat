@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>错题集管理系统</title>
-    <link rel="stylesheet" href="css/style.css?v=20260725-1">
+    <link rel="stylesheet" href="css/style.css?v=20260725-2">
 </head>
 <body>
     <div class="container">
@@ -48,6 +48,11 @@
                         <label><input type="checkbox" value="通过">通过</label>
                         <label><input type="checkbox" value="反复错">反复错</label>
                         <label><input type="checkbox" value="反复错后通过">反复错后通过</label>
+                    </div>
+                    <div class="date-filter" aria-label="错题日期筛选">
+                        <label>日期从 <input type="date" id="filterDateStart"></label>
+                        <span>至</span>
+                        <label><input type="date" id="filterDateEnd"></label>
                     </div>
                     <input type="text" id="filterKeyword" placeholder="关键字筛选来源...">
                     <button id="filterBtn" class="btn-secondary">筛选</button>
@@ -312,6 +317,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=20260725-1"></script>
+    <script src="js/app.js?v=20260725-3"></script>
 </body>
 </html>
