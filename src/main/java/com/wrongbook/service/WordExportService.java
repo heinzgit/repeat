@@ -133,8 +133,7 @@ public class WordExportService {
     }
 
     private void setupPage(XWPFDocument doc) {
-        XWPFParagraph firstPara = doc.createParagraph();
-        CTSectPr sectPr = firstPara.getCTP().addNewPPr().addNewSectPr();
+        CTSectPr sectPr = doc.getDocument().getBody().addNewSectPr();
         CTPageSz pgSz = sectPr.addNewPgSz();
         pgSz.setW(A4_WIDTH_TWIPS);
         pgSz.setH(A4_HEIGHT_TWIPS);
@@ -163,7 +162,6 @@ public class WordExportService {
 
         for (WrongQuestionFile file : questionFiles) {
             XWPFParagraph imagePara = doc.createParagraph();
-            imagePara.setAlignment(ParagraphAlignment.CENTER);
             try {
                 addImage(imagePara.createRun(), file);
             } catch (IOException e) {
@@ -190,7 +188,6 @@ public class WordExportService {
 
             for (WrongQuestionFile answerFile : answerFiles) {
                 XWPFParagraph imagePara = doc.createParagraph();
-                imagePara.setAlignment(ParagraphAlignment.CENTER);
                 try {
                     addImage(imagePara.createRun(), answerFile);
                 } catch (IOException e) {
@@ -249,8 +246,7 @@ public class WordExportService {
             try {
                 String footerRid = findFooterRelationshipId(doc, footer);
                 if (footerRid != null) {
-                    XWPFParagraph firstBodyPara = doc.getParagraphArray(0);
-                    CTSectPr sectPr = firstBodyPara.getCTP().getPPr().getSectPr();
+                    CTSectPr sectPr = doc.getDocument().getBody().getSectPr();
                     CTHdrFtrRef footerRef = sectPr.addNewFooterReference();
                     footerRef.setType(STHdrFtr.DEFAULT);
                     footerRef.setId(footerRid);
