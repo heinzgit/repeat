@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>错题集管理系统</title>
-    <link rel="stylesheet" href="css/style.css?v=20260725-3">
+    <link rel="stylesheet" href="css/style.css?v=20260725-5">
 </head>
 <body>
     <div class="container">
@@ -64,6 +64,9 @@
                     <span class="csv-hint">格式: 年级,科目,错题来源,题号,类别,错题日期</span>
                 </div>
                 <div class="bulk-action-bar">
+                    <label class="bulk-option">
+                        <input type="checkbox" id="includeAnswersCheckbox"> 包含答案
+                    </label>
                     <button id="bulkRetryBtn" class="btn-primary" disabled>批量重做 (0)</button>
                     <button id="bulkExportPdfBtn" class="btn-primary" disabled>生成试卷 PDF (0)</button>
                     <button id="clearSelectionBtn" class="btn-secondary" disabled>清除选择</button>
@@ -322,6 +325,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=20260725-4"></script>
+    <script src="js/app.js?v=20260725-5"></script>
 </body>
 </html>

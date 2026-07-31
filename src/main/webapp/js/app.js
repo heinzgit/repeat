@@ -111,6 +111,8 @@ async function exportSelectedPdf() {
     if (orderedIds.length === 0) return;
 
     const button = document.getElementById('bulkExportPdfBtn');
+    const includeAnswers =
+        document.getElementById('includeAnswersCheckbox').checked;
     pdfExportInFlight = true;
     button.disabled = true;
     button.textContent = '生成中...';
@@ -119,7 +121,10 @@ async function exportSelectedPdf() {
         const response = await fetch(`${API_BASE}/wrong-questions/export-pdf`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wrongQuestionIds: orderedIds })
+            body: JSON.stringify({
+                wrongQuestionIds: orderedIds,
+                includeAnswers: includeAnswers
+            })
         });
         if (!response.ok) {
             let message = 'PDF 生成失败，请重试';

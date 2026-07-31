@@ -556,6 +556,27 @@ main section h2 {
     box-shadow: none;
 }
 
+.bulk-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #2c3e50;
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+}
+
+.bulk-option input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
 /* checkbox 列 */
 .checkbox-col {
     width: 40px;

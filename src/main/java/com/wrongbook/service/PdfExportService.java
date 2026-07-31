@@ -36,6 +36,9 @@ public class PdfExportService {
     private static final float FONT_SIZE = 11;
     private static final float LINE_HEIGHT = 16;
     private static final float QUESTION_GAP = 10;
+    private static final float ANSWER_LABEL_GAP = 8;
+    private static final float PAGE_NUMBER_FONT_SIZE = 9;
+    private static final float PAGE_NUMBER_Y = MARGIN_BOTTOM / 2;
     public static final int MAX_QUESTIONS = 200;
 
     private final WrongQuestionRepository wrongQuestionRepository;
@@ -55,7 +58,7 @@ public class PdfExportService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] buildPaper(List<Long> orderedIds) {
+    public byte[] buildPaper(List<Long> orderedIds, boolean includeAnswers) {
         validateIds(orderedIds);
 
         List<WrongQuestion> questions = wrongQuestionRepository.findAllById(orderedIds);
@@ -82,6 +85,19 @@ public class PdfExportService {
             }
         }
 
+        Map<Long, List<WrongQuestionFile>> answerFilesByQuestionId = Map.of();
+        if (includeAnswers) {
+            List<WrongQuestionFile> answerFiles = fileRepository
+                    .findByWrongQuestionIdInAndFileTypeOrderByWrongQuestionIdAscIdAsc(
+                            orderedIds, WrongQuestionFile.FileType.ANSWER);
+            answerFilesByQuestionId = new HashMap<>();
+            for (WrongQuestionFile file : answerFiles) {
+                answerFilesByQuestionId
+                        .computeIfAbsent(file.getWrongQuestion().getId(), ignored -> new ArrayList<>())
+                        .add(file);
+            }
+        }
+
         try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PDFont font = loadFont(document);
             PdfWriter writer = new PdfWriter(document, font);
@@ -99,11 +115,27 @@ public class PdfExportService {
                 for (WrongQuestionFile file : files) {
                     writer.addImage(loadImage(document, file));
                 }
+                if (includeAnswers) {
+                    List<WrongQuestionFile> answerFiles = answerFilesByQuestionId.getOrDefault(id, List.of());
+                    String answerText = question.getAnswerText();
+                    if (hasAnswer(answerText, answerFiles)) {
+                        writer.addGap(ANSWER_LABEL_GAP);
+                        writer.addText(wrapText("答案：", font, writer.contentWidth()));
+                        if (answerText != null && !answerText.isBlank()) {
+                            List<String> answerLines = wrapText(answerText, font, writer.contentWidth());
+                            writer.addText(answerLines);
+                        }
+                        for (WrongQuestionFile answerFile : answerFiles) {
+                            writer.addImage(loadImage(document, answerFile));
+                        }
+                    }
+                }
                 writer.addGap(QUESTION_GAP);
                 sequence++;
             }
 
             writer.close();
+            addPageNumbers(document, font);
             document.save(output);
             return output.toByteArray();
         } catch (IllegalArgumentException e) {
@@ -112,6 +144,33 @@ public class PdfExportService {
             throw e;
         } catch (Exception e) {
             throw new PdfExportException("PDF 生成失败", e);
+        }
+    }
+
+    private boolean hasAnswer(String answerText, List<WrongQuestionFile> answerFiles) {
+        return (answerText != null && !answerText.isBlank()) || !answerFiles.isEmpty();
+    }
+
+    private void addPageNumbers(PDDocument document, PDFont font) throws IOException {
+        int total = document.getDocumentCatalog().getPages().getCount();
+        if (total == 0) {
+            return;
+        }
+        float pageWidth = PAGE_SIZE.getWidth();
+        int index = 1;
+        for (PDPage page : document.getDocumentCatalog().getPages()) {
+            String label = "第 " + index + " 页 / 共 " + total + " 页";
+            try (PDPageContentStream overlay = new PDPageContentStream(
+                    document, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
+                float textWidth = font.getStringWidth(label) / 1000 * PAGE_NUMBER_FONT_SIZE;
+                float x = (pageWidth - textWidth) / 2;
+                overlay.beginText();
+                overlay.setFont(font, PAGE_NUMBER_FONT_SIZE);
+                overlay.newLineAtOffset(x, PAGE_NUMBER_Y);
+                overlay.showText(label);
+                overlay.endText();
+            }
+            index++;
         }
     }
 
@@ -144,7 +203,7 @@ public class PdfExportService {
         try {
             return PDImageXObject.createFromFileByContent(path.toFile(), document);
         } catch (IOException | IllegalArgumentException e) {
-            throw new PdfExportException("题目图片无法读取: " + file.getOriginalName(), e);
+            throw new PdfExportException("图片无法读取: " + file.getOriginalName(), e);
         }
     }
 

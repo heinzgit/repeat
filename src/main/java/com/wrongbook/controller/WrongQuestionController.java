@@ -107,7 +107,8 @@ public class WrongQuestionController {
     @PostMapping(value = "/export-pdf", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> exportPdf(@Valid @RequestBody ExportPdfRequest request) {
         try {
-            byte[] pdf = pdfExportService.buildPaper(request.getWrongQuestionIds());
+            boolean includeAnswers = Boolean.TRUE.equals(request.getIncludeAnswers());
+            byte[] pdf = pdfExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers);
             String filename = "wrong-question-paper-"
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
                     + ".pdf";
@@ -152,12 +153,22 @@ public class WrongQuestionController {
                 message = "一次最多生成 " + PdfExportService.MAX_QUESTIONS + " 道错题")
         private List<Long> wrongQuestionIds;
 
+        private Boolean includeAnswers;
+
         public List<Long> getWrongQuestionIds() {
             return wrongQuestionIds;
         }
 
         public void setWrongQuestionIds(List<Long> wrongQuestionIds) {
             this.wrongQuestionIds = wrongQuestionIds;
+        }
+
+        public Boolean getIncludeAnswers() {
+            return includeAnswers;
+        }
+
+        public void setIncludeAnswers(Boolean includeAnswers) {
+            this.includeAnswers = includeAnswers;
         }
     }
 }
