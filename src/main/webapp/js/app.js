@@ -5,6 +5,7 @@ let currentPage = 1;
 let filteredQuestions = [];
 let selectedIds = new Set();
 let pdfExportInFlight = false;
+let wordExportInFlight = false;
 
 // 获取所有错题
 async function fetchWrongQuestions() {
@@ -155,6 +156,60 @@ async function exportSelectedPdf() {
     }
 }
 
+// 生成并下载试卷 Word
+async function exportSelectedWord() {
+    if (wordExportInFlight) return;
+
+    const orderedIds = filteredQuestions
+        .filter(question => selectedIds.has(question.id))
+        .map(question => question.id);
+    if (orderedIds.length === 0) return;
+
+    const button = document.getElementById('bulkExportWordBtn');
+    const includeAnswers =
+        document.getElementById('includeAnswersCheckbox').checked;
+    wordExportInFlight = true;
+    button.disabled = true;
+    button.textContent = '生成中...';
+
+    try {
+        const response = await fetch(`${API_BASE}/wrong-questions/export-word`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                wrongQuestionIds: orderedIds,
+                includeAnswers: includeAnswers
+            })
+        });
+        if (!response.ok) {
+            let message = 'Word 生成失败，请重试';
+            try {
+                const error = await response.json();
+                if (error.message) message = error.message;
+            } catch (_) {
+                // 使用默认错误提示
+            }
+            throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `错题试卷_${new Date().toISOString().slice(0, 10)}.docx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error(error);
+        alert(error.message || 'Word 生成失败，请重试');
+    } finally {
+        wordExportInFlight = false;
+        updateBulkButtonState();
+    }
+}
+
 // 获取错题的文件列表
 async function fetchQuestionFiles(wrongQuestionId) {
     try {
@@ -283,13 +338,16 @@ function toggleSelectAll(checkbox) {
 // 更新批量按钮状态
 function updateBulkButtonState() {
     const btn = document.getElementById('bulkRetryBtn');
-    const exportBtn = document.getElementById('bulkExportPdfBtn');
+    const exportPdfBtn = document.getElementById('bulkExportPdfBtn');
+    const exportWordBtn = document.getElementById('bulkExportWordBtn');
     const clearBtn = document.getElementById('clearSelectionBtn');
     const count = selectedIds.size;
     btn.textContent = `批量重做 (${count})`;
     btn.disabled = count === 0;
-    exportBtn.textContent = pdfExportInFlight ? '生成中...' : `生成试卷 PDF (${count})`;
-    exportBtn.disabled = pdfExportInFlight || count === 0;
+    exportPdfBtn.textContent = pdfExportInFlight ? '生成中...' : `生成试卷 PDF (${count})`;
+    exportPdfBtn.disabled = pdfExportInFlight || count === 0;
+    exportWordBtn.textContent = wordExportInFlight ? '生成中...' : `生成试卷 Word (${count})`;
+    exportWordBtn.disabled = wordExportInFlight || count === 0;
     clearBtn.disabled = count === 0;
 }
 
@@ -728,6 +786,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 生成试卷 PDF
     document.getElementById('bulkExportPdfBtn').addEventListener('click', exportSelectedPdf);
+
+    // 生成试卷 Word
+    document.getElementById('bulkExportWordBtn').addEventListener('click', exportSelectedWord);
 
     // 清除选择按钮
     document.getElementById('clearSelectionBtn').addEventListener('click', clearSelection);

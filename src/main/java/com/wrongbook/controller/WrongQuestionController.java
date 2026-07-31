@@ -2,6 +2,7 @@ package com.wrongbook.controller;
 
 import com.wrongbook.entity.WrongQuestion;
 import com.wrongbook.service.PdfExportService;
+import com.wrongbook.service.WordExportService;
 import com.wrongbook.service.WrongQuestionFileService;
 import com.wrongbook.service.WrongQuestionService;
 import jakarta.validation.Valid;
@@ -37,6 +38,9 @@ public class WrongQuestionController {
 
     @Autowired
     private PdfExportService pdfExportService;
+
+    @Autowired
+    private WordExportService wordExportService;
 
     @GetMapping
     public List<WrongQuestion> getAll() {
@@ -125,6 +129,28 @@ public class WrongQuestionController {
         }
     }
 
+    @PostMapping(value = "/export-word", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> exportWord(@Valid @RequestBody ExportWordRequest request) {
+        try {
+            boolean includeAnswers = Boolean.TRUE.equals(request.getIncludeAnswers());
+            byte[] docx = wordExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers);
+            String filename = "wrong-question-paper-"
+                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+                    + ".docx";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setCacheControl("no-store");
+            return ResponseEntity.ok().headers(headers).body(docx);
+        } catch (IllegalArgumentException e) {
+            return error(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (WordExportService.WordExportException e) {
+            return error(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         wrongQuestionService.deleteById(id);
@@ -151,6 +177,32 @@ public class WrongQuestionController {
         @Size(
                 max = PdfExportService.MAX_QUESTIONS,
                 message = "一次最多生成 " + PdfExportService.MAX_QUESTIONS + " 道错题")
+        private List<Long> wrongQuestionIds;
+
+        private Boolean includeAnswers;
+
+        public List<Long> getWrongQuestionIds() {
+            return wrongQuestionIds;
+        }
+
+        public void setWrongQuestionIds(List<Long> wrongQuestionIds) {
+            this.wrongQuestionIds = wrongQuestionIds;
+        }
+
+        public Boolean getIncludeAnswers() {
+            return includeAnswers;
+        }
+
+        public void setIncludeAnswers(Boolean includeAnswers) {
+            this.includeAnswers = includeAnswers;
+        }
+    }
+
+    public static class ExportWordRequest {
+        @NotEmpty(message = "请至少选择一道错题")
+        @Size(
+                max = WordExportService.MAX_QUESTIONS,
+                message = "一次最多生成 " + WordExportService.MAX_QUESTIONS + " 道错题")
         private List<Long> wrongQuestionIds;
 
         private Boolean includeAnswers;

@@ -22,6 +22,8 @@ app:
   export:
     pdf:
       font-path: ${PDF_FONT_PATH:/System/Library/Fonts/Supplemental/Arial Unicode.ttf}
+    word:
+      font-name: ${WORD_FONT_NAME:Arial Unicode MS}
 
 server:
   port: 8080
