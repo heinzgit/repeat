@@ -251,7 +251,7 @@ function renderWrongQuestions(questions) {
     const container = document.getElementById('wrongQuestionList');
 
     if (!questions || questions.length === 0) {
-        container.innerHTML = '<tr><td colspan="9" class="empty-state">暂无错题记录</td></tr>';
+        container.innerHTML = '<tr><td colspan="10" class="empty-state">暂无错题记录</td></tr>';
         updateSelectAllState(questions);
         return;
     }
@@ -259,6 +259,9 @@ function renderWrongQuestions(questions) {
     container.innerHTML = questions.map(q => {
         const checked = selectedIds.has(q.id) ? 'checked' : '';
         const rowClass = selectedIds.has(q.id) ? 'selected-row' : '';
+        const hasQuestionImage = (q.files || []).some(f => f.fileType === 'QUESTION');
+        const hasAnswer = (q.answerText && q.answerText.trim() !== '')
+            || (q.files || []).some(f => f.fileType === 'ANSWER');
         return `
         <tr class="${rowClass}">
             <td class="checkbox-cell"><input type="checkbox" class="row-checkbox" data-id="${q.id}" ${checked} onchange="toggleRowSelection(${q.id}, this.checked)"></td>
@@ -269,6 +272,10 @@ function renderWrongQuestions(questions) {
             <td>${q.category || '-'}</td>
             <td>${q.wrongDate || '-'}</td>
             <td class="status-cell"><span class="status-badge status-${q.status}">${q.status || '错误'}</span></td>
+            <td class="attachment-cell">
+                <span class="attachment-badge ${hasQuestionImage ? 'has' : 'missing'}" title="${hasQuestionImage ? '已上传题目图片' : '未上传题目图片'}">题图</span>
+                <span class="attachment-badge ${hasAnswer ? 'has' : 'missing'}" title="${hasAnswer ? '已有答案' : '暂无答案'}">答案</span>
+            </td>
             <td>
                 <button class="btn-small btn-edit" onclick="openEditModal(${q.id})">编辑</button>
                 <button class="btn-small btn-retry" onclick="openRetryModal(${q.id})">重做</button>
