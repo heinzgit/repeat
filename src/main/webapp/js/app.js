@@ -251,7 +251,7 @@ function renderWrongQuestions(questions) {
     const container = document.getElementById('wrongQuestionList');
 
     if (!questions || questions.length === 0) {
-        container.innerHTML = '<tr><td colspan="10" class="empty-state">暂无错题记录</td></tr>';
+        container.innerHTML = '<tr><td colspan="11" class="empty-state">暂无错题记录</td></tr>';
         updateSelectAllState(questions);
         return;
     }
@@ -262,6 +262,7 @@ function renderWrongQuestions(questions) {
         const hasQuestionImage = (q.files || []).some(f => f.fileType === 'QUESTION');
         const hasAnswer = (q.answerText && q.answerText.trim() !== '')
             || (q.files || []).some(f => f.fileType === 'ANSWER');
+        const retryCount = (q.retryRecords || []).length;
         return `
         <tr class="${rowClass}">
             <td class="checkbox-cell"><input type="checkbox" class="row-checkbox" data-id="${q.id}" ${checked} onchange="toggleRowSelection(${q.id}, this.checked)"></td>
@@ -272,6 +273,7 @@ function renderWrongQuestions(questions) {
             <td>${q.category || '-'}</td>
             <td>${q.wrongDate || '-'}</td>
             <td class="status-cell"><span class="status-badge status-${q.status}">${q.status || '错误'}</span></td>
+            <td class="retry-count-cell">${retryCount}</td>
             <td class="attachment-cell">
                 <span class="attachment-badge ${hasQuestionImage ? 'has' : 'missing'}" title="${hasQuestionImage ? '已上传题目图片' : '未上传题目图片'}">题图</span>
                 <span class="attachment-badge ${hasAnswer ? 'has' : 'missing'}" title="${hasAnswer ? '已有答案' : '暂无答案'}">答案</span>
@@ -400,6 +402,9 @@ async function filterQuestions() {
     const selectedStatuses = Array.from(
         document.querySelectorAll('#filterStatus input[type="checkbox"]:checked')
     ).map(checkbox => checkbox.value);
+    const selectedCategories = Array.from(
+        document.querySelectorAll('#filterCategory input[type="checkbox"]:checked')
+    ).map(checkbox => checkbox.value);
     const keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
     const startDate = document.getElementById('filterDateStart').value;
     const endDate = document.getElementById('filterDateEnd').value;
@@ -419,6 +424,9 @@ async function filterQuestions() {
     }
     if (selectedStatuses.length > 0) {
         questions = questions.filter(q => q.status && selectedStatuses.includes(q.status));
+    }
+    if (selectedCategories.length > 0) {
+        questions = questions.filter(q => q.category && selectedCategories.includes(q.category));
     }
     if (startDate && endDate) {
         questions = questions.filter(q => q.wrongDate && q.wrongDate >= startDate && q.wrongDate <= endDate);
@@ -447,6 +455,8 @@ function clearFilters() {
     document.getElementById('currentGrade').value = '';
     document.getElementById('filterSubject').value = '';
     document.querySelectorAll('#filterStatus input[type="checkbox"]')
+        .forEach(checkbox => checkbox.checked = false);
+    document.querySelectorAll('#filterCategory input[type="checkbox"]')
         .forEach(checkbox => checkbox.checked = false);
     document.getElementById('filterKeyword').value = '';
     document.getElementById('filterDateStart').value = '';

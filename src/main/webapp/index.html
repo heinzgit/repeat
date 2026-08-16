@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>错题集管理系统</title>
-    <link rel="stylesheet" href="css/style.css?v=20260802-2">
+    <link rel="stylesheet" href="css/style.css?v=20260815-1">
 </head>
 <body>
     <div class="container">
@@ -49,6 +49,10 @@
                         <label><input type="checkbox" value="反复错">反复错</label>
                         <label><input type="checkbox" value="反复错后通过">反复错后通过</label>
                     </div>
+                    <div id="filterCategory" class="status-filter" role="group" aria-label="错题类别">
+                        <label><input type="checkbox" value="做错">做错</label>
+                        <label><input type="checkbox" value="不会做">不会做</label>
+                    </div>
                     <div class="date-filter" aria-label="错题日期筛选">
                         <label>日期从 <input type="date" id="filterDateStart"></label>
                         <span>至</span>
@@ -83,6 +87,7 @@
                             <th>类别</th>
                             <th>错题日期</th>
                             <th>状态</th>
+                            <th>重做次数</th>
                             <th>附件</th>
                             <th>操作</th>
                         </tr>
@@ -327,6 +332,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=20260802-1"></script>
+    <script src="js/app.js?v=20260815-1"></script>
 </body>
 </html>

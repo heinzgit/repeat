@@ -602,6 +602,12 @@ main section h2 {
     white-space: nowrap;
 }
 
+.retry-count-cell {
+    text-align: center;
+    font-weight: 500;
+    color: #4338ca;
+}
+
 .attachment-badge {
     display: inline-block;
     padding: 2px 8px;
