@@ -147,6 +147,7 @@ async function exportSelectedPdf() {
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
+        await filterQuestions();
     } catch (error) {
         console.error(error);
         alert(error.message || 'PDF 生成失败，请重试');
@@ -201,6 +202,7 @@ async function exportSelectedWord() {
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
+        await filterQuestions();
     } catch (error) {
         console.error(error);
         alert(error.message || 'Word 生成失败，请重试');
@@ -263,6 +265,7 @@ function renderWrongQuestions(questions) {
         const hasAnswer = (q.answerText && q.answerText.trim() !== '')
             || (q.files || []).some(f => f.fileType === 'ANSWER');
         const retryCount = (q.retryRecords || []).length;
+        const paperGenerated = q.paperGenerated === true;
         return `
         <tr class="${rowClass}">
             <td class="checkbox-cell"><input type="checkbox" class="row-checkbox" data-id="${q.id}" ${checked} onchange="toggleRowSelection(${q.id}, this.checked)"></td>
@@ -277,6 +280,7 @@ function renderWrongQuestions(questions) {
             <td class="attachment-cell">
                 <span class="attachment-badge ${hasQuestionImage ? 'has' : 'missing'}" title="${hasQuestionImage ? '已上传题目图片' : '未上传题目图片'}">题图</span>
                 <span class="attachment-badge ${hasAnswer ? 'has' : 'missing'}" title="${hasAnswer ? '已有答案' : '暂无答案'}">答案</span>
+                <span class="attachment-badge ${paperGenerated ? 'has' : 'missing'}" title="${paperGenerated ? '已为该题生成过试卷' : '未生成试卷'}">试卷</span>
             </td>
             <td>
                 <button class="btn-small btn-edit" onclick="openEditModal(${q.id})">编辑</button>

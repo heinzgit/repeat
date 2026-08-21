@@ -64,6 +64,12 @@ public class RetryRecordService {
         }
         wrongQuestionRepository.save(wrongQuestion);
 
+        // 添加重做记录后,清除"已生成试卷"标记
+        if (Boolean.TRUE.equals(wrongQuestion.getPaperGenerated())) {
+            wrongQuestion.setPaperGenerated(false);
+            wrongQuestionRepository.save(wrongQuestion);
+        }
+
         return retryRecordRepository.save(retryRecord);
     }
 

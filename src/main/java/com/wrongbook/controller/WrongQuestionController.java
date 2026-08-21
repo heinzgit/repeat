@@ -113,6 +113,7 @@ public class WrongQuestionController {
         try {
             boolean includeAnswers = Boolean.TRUE.equals(request.getIncludeAnswers());
             byte[] pdf = pdfExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers);
+            wrongQuestionService.markPaperGenerated(request.getWrongQuestionIds());
             String filename = "wrong-question-paper-"
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
                     + ".pdf";
@@ -134,6 +135,7 @@ public class WrongQuestionController {
         try {
             boolean includeAnswers = Boolean.TRUE.equals(request.getIncludeAnswers());
             byte[] docx = wordExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers);
+            wrongQuestionService.markPaperGenerated(request.getWrongQuestionIds());
             String filename = "wrong-question-paper-"
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
                     + ".docx";

@@ -75,6 +75,17 @@ public class WrongQuestionService {
     }
 
     @Transactional
+    public void markPaperGenerated(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        wrongQuestionRepository.markPaperGenerated(ids);
+    }
+
+    @Transactional
+    public void clearPaperGenerated(Long id) {
+        wrongQuestionRepository.clearPaperGenerated(id);
+    }
+
+    @Transactional
     public List<WrongQuestion> importFromCsv(String csvContent) {
         List<WrongQuestion> imported = new ArrayList<>();
         String[] lines = csvContent.split("\n");

@@ -37,6 +37,9 @@ public class WrongQuestion {
     @Column(name = "answer_text", columnDefinition = "TEXT")
     private String answerText;
 
+    @Column(name = "paper_generated")
+    private Boolean paperGenerated;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -77,6 +80,9 @@ public class WrongQuestion {
 
     public String getAnswerText() { return answerText; }
     public void setAnswerText(String answerText) { this.answerText = answerText; }
+
+    public Boolean getPaperGenerated() { return paperGenerated; }
+    public void setPaperGenerated(Boolean paperGenerated) { this.paperGenerated = paperGenerated; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

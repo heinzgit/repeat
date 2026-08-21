@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS wrong_question (
     wrong_date DATE,
     status VARCHAR(20),
     answer_text TEXT,
+    paper_generated BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

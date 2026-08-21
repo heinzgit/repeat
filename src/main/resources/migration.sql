@@ -1,6 +1,7 @@
 -- 升级脚本(已有数据库时使用)
 
 ALTER TABLE wrong_question ADD COLUMN answer_text TEXT;
+ALTER TABLE wrong_question ADD COLUMN paper_generated BOOLEAN DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS wrong_question_file (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
