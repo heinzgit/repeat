@@ -77,7 +77,7 @@ class PdfExportServiceTest {
         when(fileService.resolveFilePath(secondFile)).thenReturn(secondImage);
         when(fileService.resolveFilePath(firstFile)).thenReturn(firstImage);
 
-        byte[] pdf = exportService.buildPaper(List.of(2L, 1L), false);
+        byte[] pdf = exportService.buildPaper(List.of(2L, 1L), false, "测试试卷");
 
         assertTrue(pdf.length > 0);
         try (PDDocument document = Loader.loadPDF(pdf)) {
@@ -90,7 +90,7 @@ class PdfExportServiceTest {
 
     @Test
     void rejectsEmptySelection() {
-        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(), false));
+        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(), false, "测试试卷"));
     }
 
     @Test
@@ -101,7 +101,7 @@ class PdfExportServiceTest {
                 eq(List.of(1L)), eq(WrongQuestionFile.FileType.QUESTION)))
                 .thenReturn(List.of());
 
-        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(1L), false));
+        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(1L), false, "测试试卷"));
     }
 
     @Test
@@ -127,7 +127,7 @@ class PdfExportServiceTest {
         when(fileService.resolveFilePath(questionFileEntity)).thenReturn(questionImage);
         when(fileService.resolveFilePath(answerFileEntity)).thenReturn(answerImage);
 
-        byte[] pdf = exportService.buildPaper(List.of(1L), true);
+        byte[] pdf = exportService.buildPaper(List.of(1L), true, "测试试卷");
 
         try (PDDocument document = Loader.loadPDF(pdf)) {
             String text = new PDFTextStripper().getText(document);
@@ -155,7 +155,7 @@ class PdfExportServiceTest {
                 .thenReturn(List.of());
         when(fileService.resolveFilePath(questionFileEntity)).thenReturn(questionImage);
 
-        byte[] pdf = exportService.buildPaper(List.of(1L), true);
+        byte[] pdf = exportService.buildPaper(List.of(1L), true, "测试试卷");
 
         try (PDDocument document = Loader.loadPDF(pdf)) {
             String text = new PDFTextStripper().getText(document);
@@ -184,7 +184,7 @@ class PdfExportServiceTest {
         when(fileService.resolveFilePath(firstFile)).thenReturn(firstImage);
         when(fileService.resolveFilePath(secondFile)).thenReturn(secondImage);
 
-        byte[] pdf = exportService.buildPaper(List.of(1L, 2L), false);
+        byte[] pdf = exportService.buildPaper(List.of(1L, 2L), false, "测试试卷");
 
         try (PDDocument document = Loader.loadPDF(pdf)) {
             String text = new PDFTextStripper().getText(document);
@@ -194,6 +194,41 @@ class PdfExportServiceTest {
                 String label = "第 " + i + " 页 / 共 " + total + " 页";
                 assertTrue(text.contains(label),
                         "expected page label '" + label + "' in extracted text, got:\n" + text);
+            }
+        }
+    }
+
+    @Test
+    void rendersTitleAsHeaderOnEveryPage() throws Exception {
+        assumeTrue(Files.isRegularFile(Path.of(fontPath)), "需要通过 PDF_FONT_PATH 提供中文字体");
+
+        WrongQuestion first = question(1L, "来源1", "1");
+        WrongQuestion second = question(2L, "来源2", "2");
+        Path firstImage = createImage("h1.png", 800, 400);
+        Path secondImage = createImage("h2.png", 800, 1200);
+        WrongQuestionFile firstFile = questionFile(11L, "h1.png");
+        firstFile.setWrongQuestion(first);
+        WrongQuestionFile secondFile = questionFile(12L, "h2.png");
+        secondFile.setWrongQuestion(second);
+
+        when(questionRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(first, second));
+        when(fileRepository.findByWrongQuestionIdInAndFileTypeOrderByWrongQuestionIdAscIdAsc(
+                eq(List.of(1L, 2L)), eq(WrongQuestionFile.FileType.QUESTION)))
+                .thenReturn(List.of(firstFile, secondFile));
+        when(fileService.resolveFilePath(firstFile)).thenReturn(firstImage);
+        when(fileService.resolveFilePath(secondFile)).thenReturn(secondImage);
+
+        byte[] pdf = exportService.buildPaper(List.of(1L, 2L), false, "期中复习卷");
+
+        try (PDDocument document = Loader.loadPDF(pdf)) {
+            int total = document.getNumberOfPages();
+            assertTrue(total >= 2, "expected multiple pages");
+            for (int i = 1; i <= total; i++) {
+                PDFTextStripper stripper = new PDFTextStripper();
+                stripper.setStartPage(i);
+                stripper.setEndPage(i);
+                assertTrue(stripper.getText(document).contains("期中复习卷"),
+                        "expected header title on page " + i);
             }
         }
     }

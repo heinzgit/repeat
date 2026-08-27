@@ -577,6 +577,21 @@ main section h2 {
     accent-color: #667eea;
 }
 
+.paper-title-input {
+    width: 220px;
+    padding: 7px 10px;
+    font-size: 14px;
+    color: #2c3e50;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+}
+
+.paper-title-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
 /* checkbox 列 */
 .checkbox-col {
     width: 40px;

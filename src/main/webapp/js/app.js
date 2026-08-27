@@ -102,6 +102,19 @@ async function addBatchRetryRecords(data) {
     }
 }
 
+// 试卷文件名（同时作为页眉），默认按当天日期生成
+function defaultPaperTitle() {
+    return `错题试卷_${new Date().toISOString().slice(0, 10)}`;
+}
+
+// 读取用户填写的文件名，去掉非法字符，空则回退到默认值
+function resolvePaperTitle() {
+    const input = document.getElementById('paperTitleInput');
+    const cleaned = input.value.replace(/[\\/:*?"<>|]/g, '').trim();
+    input.value = cleaned || defaultPaperTitle();
+    return input.value;
+}
+
 // 生成并下载试卷 PDF
 async function exportSelectedPdf() {
     if (pdfExportInFlight) return;
@@ -114,6 +127,7 @@ async function exportSelectedPdf() {
     const button = document.getElementById('bulkExportPdfBtn');
     const includeAnswers =
         document.getElementById('includeAnswersCheckbox').checked;
+    const title = resolvePaperTitle();
     pdfExportInFlight = true;
     button.disabled = true;
     button.textContent = '生成中...';
@@ -124,7 +138,8 @@ async function exportSelectedPdf() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 wrongQuestionIds: orderedIds,
-                includeAnswers: includeAnswers
+                includeAnswers: includeAnswers,
+                title: title
             })
         });
         if (!response.ok) {
@@ -142,7 +157,7 @@ async function exportSelectedPdf() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `错题试卷_${new Date().toISOString().slice(0, 10)}.pdf`;
+        link.download = `${title}.pdf`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -169,6 +184,7 @@ async function exportSelectedWord() {
     const button = document.getElementById('bulkExportWordBtn');
     const includeAnswers =
         document.getElementById('includeAnswersCheckbox').checked;
+    const title = resolvePaperTitle();
     wordExportInFlight = true;
     button.disabled = true;
     button.textContent = '生成中...';
@@ -179,7 +195,8 @@ async function exportSelectedWord() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 wrongQuestionIds: orderedIds,
-                includeAnswers: includeAnswers
+                includeAnswers: includeAnswers,
+                title: title
             })
         });
         if (!response.ok) {
@@ -197,7 +214,7 @@ async function exportSelectedWord() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `错题试卷_${new Date().toISOString().slice(0, 10)}.docx`;
+        link.download = `${title}.docx`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -810,6 +827,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 生成试卷 Word
     document.getElementById('bulkExportWordBtn').addEventListener('click', exportSelectedWord);
+
+    // 试卷文件名默认值
+    document.getElementById('paperTitleInput').value = defaultPaperTitle();
 
     // 清除选择按钮
     document.getElementById('clearSelectionBtn').addEventListener('click', clearSelection);

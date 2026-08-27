@@ -17,6 +17,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,7 +50,7 @@ class WrongQuestionControllerPdfTest {
     @Test
     void returnsPdfForValidSelection() throws Exception {
         byte[] pdf = "%PDF-1.7 test".getBytes();
-        when(pdfExportService.buildPaper(eq(List.of(2L, 1L)), eq(false))).thenReturn(pdf);
+        when(pdfExportService.buildPaper(eq(List.of(2L, 1L)), eq(false), anyString())).thenReturn(pdf);
 
         mockMvc.perform(post("/api/wrong-questions/export-pdf")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -70,7 +71,7 @@ class WrongQuestionControllerPdfTest {
     @Test
     void acceptsIncludeAnswersTrue() throws Exception {
         byte[] pdf = "%PDF-1.7 answer".getBytes();
-        when(pdfExportService.buildPaper(eq(List.of(1L)), eq(true))).thenReturn(pdf);
+        when(pdfExportService.buildPaper(eq(List.of(1L)), eq(true), anyString())).thenReturn(pdf);
 
         mockMvc.perform(post("/api/wrong-questions/export-pdf")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -78,20 +79,20 @@ class WrongQuestionControllerPdfTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF));
 
-        verify(pdfExportService).buildPaper(eq(List.of(1L)), eq(true));
+        verify(pdfExportService).buildPaper(eq(List.of(1L)), eq(true), anyString());
     }
 
     @Test
     void acceptsOmittedIncludeAnswers() throws Exception {
         byte[] pdf = "%PDF-1.7 default".getBytes();
-        when(pdfExportService.buildPaper(anyList(), anyBoolean())).thenReturn(pdf);
+        when(pdfExportService.buildPaper(anyList(), anyBoolean(), anyString())).thenReturn(pdf);
 
         mockMvc.perform(post("/api/wrong-questions/export-pdf")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"wrongQuestionIds\":[1]}"))
                 .andExpect(status().isOk());
 
-        verify(pdfExportService).buildPaper(eq(List.of(1L)), eq(false));
+        verify(pdfExportService).buildPaper(eq(List.of(1L)), eq(false), anyString());
     }
 
     @Test

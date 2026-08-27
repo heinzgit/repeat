@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,7 +47,7 @@ class WrongQuestionControllerWordTest {
     @Test
     void returnsDocxForValidSelection() throws Exception {
         byte[] docx = new byte[]{(byte) 0x50, (byte) 0x4B, 0x03, 0x04};
-        when(wordExportService.buildPaper(eq(List.of(2L, 1L)), eq(false))).thenReturn(docx);
+        when(wordExportService.buildPaper(eq(List.of(2L, 1L)), eq(false), anyString())).thenReturn(docx);
 
         mockMvc.perform(post("/api/wrong-questions/export-word")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -68,26 +69,26 @@ class WrongQuestionControllerWordTest {
     @Test
     void acceptsIncludeAnswersTrue() throws Exception {
         byte[] docx = new byte[]{1, 2, 3};
-        when(wordExportService.buildPaper(eq(List.of(1L)), eq(true))).thenReturn(docx);
+        when(wordExportService.buildPaper(eq(List.of(1L)), eq(true), anyString())).thenReturn(docx);
 
         mockMvc.perform(post("/api/wrong-questions/export-word")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"wrongQuestionIds\":[1],\"includeAnswers\":true}"))
                 .andExpect(status().isOk());
 
-        verify(wordExportService).buildPaper(eq(List.of(1L)), eq(true));
+        verify(wordExportService).buildPaper(eq(List.of(1L)), eq(true), anyString());
     }
 
     @Test
     void acceptsOmittedIncludeAnswers() throws Exception {
         byte[] docx = new byte[]{1};
-        when(wordExportService.buildPaper(anyList(), eq(false))).thenReturn(docx);
+        when(wordExportService.buildPaper(anyList(), eq(false), anyString())).thenReturn(docx);
 
         mockMvc.perform(post("/api/wrong-questions/export-word")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"wrongQuestionIds\":[1]}"))
                 .andExpect(status().isOk());
 
-        verify(wordExportService).buildPaper(eq(List.of(1L)), eq(false));
+        verify(wordExportService).buildPaper(eq(List.of(1L)), eq(false), anyString());
     }
 }

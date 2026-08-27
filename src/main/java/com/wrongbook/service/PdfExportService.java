@@ -39,6 +39,8 @@ public class PdfExportService {
     private static final float ANSWER_LABEL_GAP = 8;
     private static final float PAGE_NUMBER_FONT_SIZE = 9;
     private static final float PAGE_NUMBER_Y = MARGIN_BOTTOM / 2;
+    private static final float PAGE_TITLE_FONT_SIZE = 10;
+    private static final float PAGE_TITLE_Y = PAGE_SIZE.getHeight() - MARGIN_TOP / 2;
     public static final int MAX_QUESTIONS = 200;
 
     private final WrongQuestionRepository wrongQuestionRepository;
@@ -58,7 +60,7 @@ public class PdfExportService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] buildPaper(List<Long> orderedIds, boolean includeAnswers) {
+    public byte[] buildPaper(List<Long> orderedIds, boolean includeAnswers, String title) {
         validateIds(orderedIds);
 
         List<WrongQuestion> questions = wrongQuestionRepository.findAllById(orderedIds);
@@ -135,7 +137,7 @@ public class PdfExportService {
             }
 
             writer.close();
-            addPageNumbers(document, font);
+            addPageDecorations(document, font, title);
             document.save(output);
             return output.toByteArray();
         } catch (IllegalArgumentException e) {
@@ -151,27 +153,35 @@ public class PdfExportService {
         return (answerText != null && !answerText.isBlank()) || !answerFiles.isEmpty();
     }
 
-    private void addPageNumbers(PDDocument document, PDFont font) throws IOException {
+    private void addPageDecorations(PDDocument document, PDFont font, String title) throws IOException {
         int total = document.getDocumentCatalog().getPages().getCount();
         if (total == 0) {
             return;
         }
         float pageWidth = PAGE_SIZE.getWidth();
+        boolean hasTitle = title != null && !title.isBlank();
         int index = 1;
         for (PDPage page : document.getDocumentCatalog().getPages()) {
             String label = "第 " + index + " 页 / 共 " + total + " 页";
             try (PDPageContentStream overlay = new PDPageContentStream(
                     document, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
-                float textWidth = font.getStringWidth(label) / 1000 * PAGE_NUMBER_FONT_SIZE;
-                float x = (pageWidth - textWidth) / 2;
-                overlay.beginText();
-                overlay.setFont(font, PAGE_NUMBER_FONT_SIZE);
-                overlay.newLineAtOffset(x, PAGE_NUMBER_Y);
-                overlay.showText(label);
-                overlay.endText();
+                if (hasTitle) {
+                    drawCenteredText(overlay, font, title, PAGE_TITLE_FONT_SIZE, PAGE_TITLE_Y, pageWidth);
+                }
+                drawCenteredText(overlay, font, label, PAGE_NUMBER_FONT_SIZE, PAGE_NUMBER_Y, pageWidth);
             }
             index++;
         }
+    }
+
+    private void drawCenteredText(PDPageContentStream stream, PDFont font, String text,
+                                  float fontSize, float y, float pageWidth) throws IOException {
+        float textWidth = font.getStringWidth(text) / 1000 * fontSize;
+        stream.beginText();
+        stream.setFont(font, fontSize);
+        stream.newLineAtOffset((pageWidth - textWidth) / 2, y);
+        stream.showText(text);
+        stream.endText();
     }
 
     private void validateIds(List<Long> orderedIds) {

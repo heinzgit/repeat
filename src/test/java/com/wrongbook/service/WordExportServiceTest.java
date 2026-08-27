@@ -6,6 +6,7 @@ import com.wrongbook.repository.WrongQuestionFileRepository;
 import com.wrongbook.repository.WrongQuestionRepository;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFFooter;
+import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +72,7 @@ class WordExportServiceTest {
         when(fileService.resolveFilePath(secondFile)).thenReturn(secondImage);
         when(fileService.resolveFilePath(firstFile)).thenReturn(firstImage);
 
-        byte[] docx = exportService.buildPaper(List.of(2L, 1L), false);
+        byte[] docx = exportService.buildPaper(List.of(2L, 1L), false, "测试试卷");
 
         assertTrue(docx.length > 0);
         try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docx))) {
@@ -83,7 +84,7 @@ class WordExportServiceTest {
 
     @Test
     void rejectsEmptySelection() {
-        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(), false));
+        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(), false, "测试试卷"));
     }
 
     @Test
@@ -94,7 +95,7 @@ class WordExportServiceTest {
                 eq(List.of(1L)), eq(WrongQuestionFile.FileType.QUESTION)))
                 .thenReturn(List.of());
 
-        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(1L), false));
+        assertThrows(IllegalArgumentException.class, () -> exportService.buildPaper(List.of(1L), false, "测试试卷"));
     }
 
     @Test
@@ -118,7 +119,7 @@ class WordExportServiceTest {
         when(fileService.resolveFilePath(questionFileEntity)).thenReturn(questionImage);
         when(fileService.resolveFilePath(answerFileEntity)).thenReturn(answerImage);
 
-        byte[] docx = exportService.buildPaper(List.of(1L), true);
+        byte[] docx = exportService.buildPaper(List.of(1L), true, "测试试卷");
 
         try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docx))) {
             String text = allText(doc);
@@ -143,7 +144,7 @@ class WordExportServiceTest {
                 .thenReturn(List.of());
         when(fileService.resolveFilePath(questionFileEntity)).thenReturn(questionImage);
 
-        byte[] docx = exportService.buildPaper(List.of(1L), true);
+        byte[] docx = exportService.buildPaper(List.of(1L), true, "测试试卷");
 
         try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docx))) {
             String text = allText(doc);
@@ -164,7 +165,7 @@ class WordExportServiceTest {
                 .thenReturn(List.of(qFile));
         when(fileService.resolveFilePath(qFile)).thenReturn(image);
 
-        byte[] docx = exportService.buildPaper(List.of(1L), false);
+        byte[] docx = exportService.buildPaper(List.of(1L), false, "测试试卷");
 
         try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docx))) {
             StringBuilder sb = new StringBuilder();
@@ -182,6 +183,35 @@ class WordExportServiceTest {
             String footerXml = doc.getFooterList().get(0)._getHdrFtr().toString();
             assertTrue(footerXml.contains("PAGE"));
             assertTrue(footerXml.contains("NUMPAGES"));
+        }
+    }
+
+    @Test
+    void rendersTitleInPageHeader() throws Exception {
+        Path image = createImage("h.png", 800, 400);
+        WrongQuestion question = question(1L, "来源", "1");
+        WrongQuestionFile qFile = questionFile(11L, "h.png");
+        qFile.setWrongQuestion(question);
+
+        when(questionRepository.findAllById(List.of(1L))).thenReturn(List.of(question));
+        when(fileRepository.findByWrongQuestionIdInAndFileTypeOrderByWrongQuestionIdAscIdAsc(
+                eq(List.of(1L)), eq(WrongQuestionFile.FileType.QUESTION)))
+                .thenReturn(List.of(qFile));
+        when(fileService.resolveFilePath(qFile)).thenReturn(image);
+
+        byte[] docx = exportService.buildPaper(List.of(1L), false, "期中复习卷");
+
+        try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(docx))) {
+            StringBuilder sb = new StringBuilder();
+            for (XWPFHeader header : doc.getHeaderList()) {
+                for (XWPFParagraph para : header.getParagraphs()) {
+                    for (XWPFRun run : para.getRuns()) {
+                        sb.append(run.getText(0));
+                    }
+                }
+            }
+            assertTrue(sb.toString().contains("期中复习卷"),
+                    "expected header to contain title, got: " + sb);
         }
     }
 

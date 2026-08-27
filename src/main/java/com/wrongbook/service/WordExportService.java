@@ -10,6 +10,7 @@ import org.apache.poi.xwpf.model.XWPFHeaderFooterPolicy;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFFooter;
+import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFPicture;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
@@ -51,6 +52,7 @@ public class WordExportService {
     private static final int DPI = 96;
     private static final float HEADER_FONT_SIZE = 12;
     private static final float ANSWER_FONT_SIZE = 11;
+    private static final float PAGE_TITLE_FONT_SIZE = 11;
 
     private final WrongQuestionRepository wrongQuestionRepository;
     private final WrongQuestionFileRepository fileRepository;
@@ -69,7 +71,7 @@ public class WordExportService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] buildPaper(List<Long> orderedIds, boolean includeAnswers) {
+    public byte[] buildPaper(List<Long> orderedIds, boolean includeAnswers, String title) {
         validateIds(orderedIds);
 
         List<WrongQuestion> questions = wrongQuestionRepository.findAllById(orderedIds);
@@ -121,6 +123,7 @@ public class WordExportService {
                 sequence++;
             }
             addPageFooter(doc);
+            addPageHeader(doc, title);
             doc.write(output);
             return output.toByteArray();
         } catch (IllegalArgumentException e) {
@@ -227,6 +230,35 @@ public class WordExportService {
         }
     }
 
+    private void addPageHeader(XWPFDocument doc, String title) {
+        if (title == null || title.isBlank()) {
+            return;
+        }
+        XWPFHeader header = doc.createHeader(HeaderFooterType.DEFAULT);
+        XWPFParagraph para = header.getParagraphArray(0);
+        if (para == null) {
+            para = header.createParagraph();
+        }
+        para.setAlignment(ParagraphAlignment.CENTER);
+
+        XWPFRun run = para.createRun();
+        applyFont(run);
+        run.setFontSize(PAGE_TITLE_FONT_SIZE);
+        run.setText(title);
+
+        try {
+            String headerRid = findRelationshipId(doc, header.getPackagePart());
+            if (headerRid != null) {
+                CTSectPr sectPr = doc.getDocument().getBody().getSectPr();
+                CTHdrFtrRef headerRef = sectPr.addNewHeaderReference();
+                headerRef.setType(STHdrFtr.DEFAULT);
+                headerRef.setId(headerRid);
+            }
+        } catch (Exception ignored) {
+            // 页眉内容已写入,未挂接引用时 Word 会忽略;不影响主要内容生成
+        }
+    }
+
     private void addPageFooter(XWPFDocument doc) {
         XWPFFooter footer = doc.createFooter(HeaderFooterType.DEFAULT);
         XWPFParagraph para = footer.getParagraphArray(0);
@@ -244,7 +276,7 @@ public class WordExportService {
         XWPFHeaderFooterPolicy policy = doc.getHeaderFooterPolicy();
         if (policy != null) {
             try {
-                String footerRid = findFooterRelationshipId(doc, footer);
+                String footerRid = findRelationshipId(doc, footer.getPackagePart());
                 if (footerRid != null) {
                     CTSectPr sectPr = doc.getDocument().getBody().getSectPr();
                     CTHdrFtrRef footerRef = sectPr.addNewFooterReference();
@@ -257,16 +289,16 @@ public class WordExportService {
         }
     }
 
-    private String findFooterRelationshipId(XWPFDocument doc, XWPFFooter footer) {
+    private String findRelationshipId(XWPFDocument doc, org.apache.poi.openxml4j.opc.PackagePart targetPart) {
         try {
             org.apache.poi.openxml4j.opc.PackagePart sourcePart = doc.getPackagePart();
             for (PackageRelationship rel : sourcePart.getRelationships()) {
-                if (rel.getTargetURI().equals(footer.getPackagePart().getPartName())) {
+                if (rel.getTargetURI().equals(targetPart.getPartName())) {
                     return rel.getId();
                 }
             }
         } catch (org.apache.poi.openxml4j.exceptions.InvalidFormatException ignored) {
-            // 关联失败时页脚仍然写入 XML,Word 可能忽略引用,不影响主流程
+            // 关联失败时页眉页脚仍然写入 XML,Word 可能忽略引用,不影响主流程
         }
         return null;
     }

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -112,15 +112,15 @@ public class WrongQuestionController {
     public ResponseEntity<?> exportPdf(@Valid @RequestBody ExportPdfRequest request) {
         try {
             boolean includeAnswers = Boolean.TRUE.equals(request.getIncludeAnswers());
-            byte[] pdf = pdfExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers);
+            String title = resolveTitle(request.getTitle());
+            byte[] pdf = pdfExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers, title);
             wrongQuestionService.markPaperGenerated(request.getWrongQuestionIds());
-            String filename = "wrong-question-paper-"
-                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-                    + ".pdf";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename(title + ".pdf", StandardCharsets.UTF_8)
+                    .build());
             headers.setCacheControl("no-store");
             return ResponseEntity.ok().headers(headers).body(pdf);
         } catch (IllegalArgumentException e) {
@@ -134,16 +134,16 @@ public class WrongQuestionController {
     public ResponseEntity<?> exportWord(@Valid @RequestBody ExportWordRequest request) {
         try {
             boolean includeAnswers = Boolean.TRUE.equals(request.getIncludeAnswers());
-            byte[] docx = wordExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers);
+            String title = resolveTitle(request.getTitle());
+            byte[] docx = wordExportService.buildPaper(request.getWrongQuestionIds(), includeAnswers, title);
             wrongQuestionService.markPaperGenerated(request.getWrongQuestionIds());
-            String filename = "wrong-question-paper-"
-                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-                    + ".docx";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType(
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
-            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename(title + ".docx", StandardCharsets.UTF_8)
+                    .build());
             headers.setCacheControl("no-store");
             return ResponseEntity.ok().headers(headers).body(docx);
         } catch (IllegalArgumentException e) {
@@ -151,6 +151,14 @@ public class WrongQuestionController {
         } catch (WordExportService.WordExportException e) {
             return error(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
+    }
+
+    static String resolveTitle(String rawTitle) {
+        String cleaned = rawTitle == null ? "" : rawTitle.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "").trim();
+        if (cleaned.isEmpty()) {
+            return "错题试卷_" + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+        }
+        return cleaned;
     }
 
     @DeleteMapping("/{id}")
@@ -183,6 +191,9 @@ public class WrongQuestionController {
 
         private Boolean includeAnswers;
 
+        @Size(max = 80, message = "文件名最多 80 个字符")
+        private String title;
+
         public List<Long> getWrongQuestionIds() {
             return wrongQuestionIds;
         }
@@ -197,6 +208,14 @@ public class WrongQuestionController {
 
         public void setIncludeAnswers(Boolean includeAnswers) {
             this.includeAnswers = includeAnswers;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
         }
     }
 
@@ -209,6 +228,9 @@ public class WrongQuestionController {
 
         private Boolean includeAnswers;
 
+        @Size(max = 80, message = "文件名最多 80 个字符")
+        private String title;
+
         public List<Long> getWrongQuestionIds() {
             return wrongQuestionIds;
         }
@@ -223,6 +245,14 @@ public class WrongQuestionController {
 
         public void setIncludeAnswers(Boolean includeAnswers) {
             this.includeAnswers = includeAnswers;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
         }
     }
 }
